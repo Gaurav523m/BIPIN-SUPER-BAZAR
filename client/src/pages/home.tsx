@@ -59,6 +59,42 @@ const Home: React.FC = () => {
         </div>
       </div>
 
+      {/* Featured Categories Section */}
+      <section className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Shop by Category</h2>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {isLoadingCategories ? (
+            // Skeleton loading for categories
+            Array(6).fill(0).map((_, index) => (
+              <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col items-center p-4">
+                <Skeleton className="w-16 h-16 rounded-full mb-3" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            ))
+          ) : categories && categories.length > 0 ? (
+            categories.map((category, index) => (
+              <a 
+                key={category.id} 
+                href={`/category/${category.id}`}
+                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col items-center p-4"
+              >
+                <CategoryIcon 
+                  icon={category.icon || "bx-package"} 
+                  color={getCategoryColor(index)}
+                  size="md"
+                />
+                <h3 className="text-sm font-medium text-center mt-3">{category.name}</h3>
+              </a>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-500">No categories available.</p>
+            </div>
+          )}
+        </div>
+      </section>
+      
       {/* Special Offers Section */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -113,11 +149,54 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* Products Section */}
+      {/* Trending Products Section */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Trending Products</h2>
+          <a href="#" className="text-primary text-sm font-medium">View All</a>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {isLoadingProducts ? (
+            // Skeleton loading for products
+            Array(4).fill(0).map((_, index) => (
+              <div key={`trending-${index}`} className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-200">
+                <Skeleton className="w-full h-40" />
+                <div className="p-3">
+                  <div className="flex justify-between items-start mb-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <Skeleton className="h-3 w-32 mb-2" />
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-7 w-7 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : products && products.length > 0 ? (
+            // Display only first 4 products as "trending"
+            products.slice(0, 4).map((product) => (
+              <ProductCard 
+                key={`trending-${product.id}`} 
+                product={product} 
+                onViewDetails={openProductModal} 
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-500">No trending products available.</p>
+            </div>
+          )}
+        </div>
+      </section>
+      
+      {/* All Products Section */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">
-            {searchQuery ? `Search Results for "${searchQuery}"` : "Fruits & Vegetables"}
+            {searchQuery ? `Search Results for "${searchQuery}"` : "All Products"}
           </h2>
           <a href="#" className="text-primary text-sm font-medium">View All</a>
         </div>
@@ -159,39 +238,92 @@ const Home: React.FC = () => {
         </div>
       </section>
       
-      {/* Featured Categories Section */}
-      <section className="mt-12">
-        <h2 className="text-xl font-bold mb-4">Shop by Category</h2>
+      {/* Seasonal Recommendations */}
+      <section className="mt-12 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Seasonal Recommendations</h2>
+        </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {isLoadingCategories ? (
-            // Skeleton loading for categories
-            Array(6).fill(0).map((_, index) => (
-              <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col items-center p-4">
-                <Skeleton className="w-16 h-16 rounded-full mb-3" />
-                <Skeleton className="h-4 w-24" />
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-bold mb-2">Summer Essentials</h3>
+              <p className="text-sm text-gray-600 mb-4">Beat the heat with these refreshing summer picks</p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {!isLoadingProducts && products && products.length > 0 ? (
+                  products.slice(0, 2).map((product) => (
+                    <div 
+                      key={`summer-${product.id}`} 
+                      className="bg-white rounded-lg p-3 shadow-sm flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => openProductModal(product)}
+                    >
+                      <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                        <img 
+                          src={product.image || ''} 
+                          alt={product.name}
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">{product.name}</h4>
+                        <p className="text-xs text-primary font-bold">${product.discountPrice || product.price}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  Array(2).fill(0).map((_, index) => (
+                    <div key={`summer-skeleton-${index}`} className="bg-white rounded-lg p-3 shadow-sm flex items-center gap-2">
+                      <Skeleton className="w-12 h-12 rounded-md flex-shrink-0" />
+                      <div className="flex-grow">
+                        <Skeleton className="h-3 w-20 mb-1" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            ))
-          ) : categories && categories.length > 0 ? (
-            categories.map((category, index) => (
-              <a 
-                key={category.id} 
-                href={`/category/${category.id}`}
-                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col items-center p-4"
-              >
-                <CategoryIcon 
-                  icon={category.icon || "bx-package"} 
-                  color={getCategoryColor(index)}
-                  size="md"
-                />
-                <h3 className="text-sm font-medium text-center mt-3">{category.name}</h3>
-              </a>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-8">
-              <p className="text-gray-500">No categories available.</p>
             </div>
-          )}
+            
+            <div>
+              <h3 className="text-lg font-bold mb-2">Healthy Choices</h3>
+              <p className="text-sm text-gray-600 mb-4">Fresh organic products for a healthier lifestyle</p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {!isLoadingProducts && products && products.length > 0 ? (
+                  products.slice(2, 4).map((product) => (
+                    <div 
+                      key={`healthy-${product.id}`} 
+                      className="bg-white rounded-lg p-3 shadow-sm flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => openProductModal(product)}
+                    >
+                      <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+                        <img 
+                          src={product.image || ''} 
+                          alt={product.name}
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium">{product.name}</h4>
+                        <p className="text-xs text-primary font-bold">${product.discountPrice || product.price}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  Array(2).fill(0).map((_, index) => (
+                    <div key={`healthy-skeleton-${index}`} className="bg-white rounded-lg p-3 shadow-sm flex items-center gap-2">
+                      <Skeleton className="w-12 h-12 rounded-md flex-shrink-0" />
+                      <div className="flex-grow">
+                        <Skeleton className="h-3 w-20 mb-1" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       
