@@ -12,7 +12,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onViewDetails }) => {
   const { addToCart } = useCart();
   const { toast } = useToast();
-  
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(product);
@@ -22,20 +22,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onViewDetails }) => 
       variant: "success",
     });
   };
-  
+
   const handleClick = () => {
     onViewDetails(product);
   };
-  
+
   const calculateDiscountPercentage = () => {
     if (product.discountPrice && product.price > product.discountPrice) {
       return Math.round(((product.price - product.discountPrice) / product.price) * 100);
     }
     return null;
   };
-  
+
   const discountPercentage = calculateDiscountPercentage();
-  
+
   return (
     <div 
       className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-200 cursor-pointer"
@@ -66,7 +66,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onViewDetails }) => 
           <i className='bx bx-heart'></i>
         </button>
       </div>
-      
+
       <div className="p-3">
         <div className="flex justify-between items-start mb-1">
           <h3 className="font-medium text-sm">{product.name}</h3>
@@ -74,17 +74,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onViewDetails }) => 
             <i className='bx bx-time text-xs'></i> 10 min
           </div>
         </div>
-        
+
         <p className="text-xs text-gray-500 mb-2">{product.quantity}</p>
-        
+
         <div className="flex justify-between items-center">
           <div>
-            <span className="font-bold">${product.discountPrice ?? product.price}</span>
+            <span className="font-bold">₹{(product.discountPrice ?? product.price).toFixed(2)}</span>
             {product.discountPrice && (
-              <span className="text-xs text-gray-500 line-through ml-1">${product.price}</span>
+              <span className="text-xs text-gray-500 line-through ml-1">₹{product.price.toFixed(2)}</span>
             )}
           </div>
-          
+
           <Button
             size="icon"
             className="bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center shadow-sm hover:bg-primary/90 transition-colors"

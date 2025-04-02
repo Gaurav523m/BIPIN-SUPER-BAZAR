@@ -57,7 +57,7 @@ const Header: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
               <span className="text-primary text-3xl"><i className='bx bx-cart'></i></span>
-              <span className="text-xl font-bold">QuickCart</span>
+              <span className="text-xl font-bold">BIPIN SUPER BAZAR</span>
             </Link>
           </div>
           

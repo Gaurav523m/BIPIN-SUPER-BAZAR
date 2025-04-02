@@ -134,7 +134,7 @@ export class PgStorage implements IStorage {
       .from(cartItems)
       .where(eq(cartItems.userId, userId))
       .leftJoin(products, eq(cartItems.productId, products.id));
-    
+
     return result.map(item => {
       if (!item.products) {
         throw new Error("Product not found for cart item");
@@ -164,7 +164,7 @@ export class PgStorage implements IStorage {
   async addToCart(cartItem: InsertCartItem): Promise<CartItem> {
     // Check if the product is already in the cart
     const existingItem = await this.getCartItemByProductId(cartItem.userId, cartItem.productId);
-    
+
     if (existingItem) {
       // Update quantity if exists
       const result = await db.update(cartItems)
@@ -222,18 +222,18 @@ export class PgStorage implements IStorage {
 
   async getOrder(id: number): Promise<(Order & { items: (OrderItem & { product: Product })[] }) | undefined> {
     const orderResult = await db.select().from(orders).where(eq(orders.id, id));
-    
+
     if (orderResult.length === 0) {
       return undefined;
     }
-    
+
     const order = orderResult[0];
-    
+
     const orderItemsResult = await db.select()
       .from(orderItems)
       .where(eq(orderItems.orderId, id))
       .leftJoin(products, eq(orderItems.productId, products.id));
-    
+
     const items = orderItemsResult.map(item => {
       if (!item.products) {
         throw new Error("Product not found for order item");
@@ -243,7 +243,7 @@ export class PgStorage implements IStorage {
         product: item.products
       };
     });
-    
+
     return { ...order, items };
   }
 
@@ -280,7 +280,7 @@ export class PgStorage implements IStorage {
     const result = await db.select()
       .from(inventory)
       .leftJoin(products, eq(inventory.productId, products.id));
-    
+
     return result.map(item => {
       if (!item.products) {
         throw new Error(`Product with id ${item.inventory.productId} not found`);
@@ -339,7 +339,7 @@ export class PgStorage implements IStorage {
     // Calculate new stock level
     const newQuantity = inventoryItem.stockQuantity + quantity;
     const stockQuantity = newQuantity >= 0 ? newQuantity : 0;
-    
+
     // Update inventory
     const result = await db.update(inventory)
       .set({
@@ -366,13 +366,13 @@ export class PgStorage implements IStorage {
       .from(stockTransactions)
       .leftJoin(products, eq(stockTransactions.productId, products.id))
       .orderBy(desc(stockTransactions.transactionDate));
-    
+
     if (productId) {
       query = query.where(eq(stockTransactions.productId, productId));
     }
 
     const result = await query;
-    
+
     return result.map(item => {
       if (!item.products) {
         throw new Error(`Product with id ${item.stock_transactions.productId} not found`);
@@ -430,7 +430,7 @@ export class PgStorage implements IStorage {
       .from(customerPricing)
       .leftJoin(products, eq(customerPricing.productId, products.id))
       .leftJoin(pricingTiers, eq(customerPricing.pricingTierId, pricingTiers.id));
-    
+
     if (productId) {
       query = query.where(eq(customerPricing.productId, productId));
     }
@@ -440,7 +440,7 @@ export class PgStorage implements IStorage {
     }
 
     const result = await query;
-    
+
     return result.map(item => {
       if (!item.products || !item.pricing_tiers) {
         throw new Error('Product or pricing tier not found');
@@ -459,11 +459,11 @@ export class PgStorage implements IStorage {
       .where(eq(customerPricing.id, id))
       .leftJoin(products, eq(customerPricing.productId, products.id))
       .leftJoin(pricingTiers, eq(customerPricing.pricingTierId, pricingTiers.id));
-    
+
     if (result.length === 0 || !result[0].products || !result[0].pricing_tiers) {
       return undefined;
     }
-    
+
     return {
       ...result[0].customer_pricing,
       product: result[0].products,
@@ -513,7 +513,7 @@ export class PgStorage implements IStorage {
           userPricingTiers.endDate >= currentDate
         )
       ));
-    
+
     return result.map(item => {
       if (!item.pricing_tiers) {
         throw new Error(`Pricing tier not found`);
@@ -550,16 +550,16 @@ export class PgStorage implements IStorage {
       throw new Error(`Product with id ${productId} not found`);
     }
     const product = productResult[0];
-    
+
     const regularPrice = product.discountPrice || product.price;
-    
+
     // Check if user has any active pricing tiers
     const userTiers = await this.getUserPricingTiers(userId);
     if (userTiers.length === 0) return regularPrice;
-    
+
     // Find specific product pricing for the user's tiers
     let bestPrice = regularPrice;
-    
+
     for (const userTier of userTiers) {
       // Check for specific product pricing in this tier
       const specificPricings = await db.select()
@@ -569,7 +569,7 @@ export class PgStorage implements IStorage {
           eq(customerPricing.pricingTierId, userTier.pricingTierId),
           eq(customerPricing.isActive, true)
         ));
-      
+
       if (specificPricings.length > 0) {
         // Use the specific product pricing
         const pricing = specificPricings[0];
@@ -584,7 +584,7 @@ export class PgStorage implements IStorage {
         }
       }
     }
-    
+
     return bestPrice;
   }
 }
@@ -594,7 +594,7 @@ export async function initializeDatabase() {
   // Check if tables are empty
   const categoryCount = await db.select().from(categories);
   const userCount = await db.select().from(users);
-  
+
   // Create admin user if no users exist
   if (userCount.length === 0) {
     await db.insert(users).values({
@@ -604,13 +604,13 @@ export async function initializeDatabase() {
       email: "admin@groceryapp.com",
       role: "admin"
     });
-    
+
     console.log('Admin user created');
   }
-  
+
   if (categoryCount.length === 0) {
     console.log('Initializing database with demo data...');
-    
+
     // Add categories
     const fruitsCategory = await db.insert(categories).values({ 
       name: 'Fruits & Vegetables',
@@ -642,8 +642,45 @@ export async function initializeDatabase() {
       description: 'Bread, cakes, pastries'
     }).returning();
 
+    const groceryCategory = await db.insert(categories).values({
+      name: 'Grocery',
+      icon: 'bx-shopping-bag',
+      description: 'Grains, pulses, and other grocery items'
+    }).returning();
+
+
     // Add products
     await db.insert(products).values([
+      { 
+        name: 'Fresh Bananas',
+        description: 'Sweet and fresh Indian bananas',
+        price: 40,
+        quantity: '12pcs',
+        categoryId: fruitsCategory[0].id,
+        image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&q=80&w=2080&ixlib=rb-4.0.3',
+        isOrganic: true,
+        inStock: true
+      },
+      { 
+        name: 'Toor Dal',
+        description: 'Premium quality toor dal',
+        price: 120,
+        quantity: '1kg',
+        categoryId: groceryCategory[0].id,
+        image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&q=80&w=2080',
+        isOrganic: false,
+        inStock: true
+      },
+      { 
+        name: 'Basmati Rice',
+        description: 'Premium long-grain basmati rice',
+        price: 160,
+        quantity: '1kg',
+        categoryId: groceryCategory[0].id,
+        image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=2080',
+        isOrganic: false,
+        inStock: true
+      },
       { 
         name: 'Organic Banana',
         description: 'Our organic bananas are sourced from sustainable farms. Sweet and ready to eat!',
@@ -772,7 +809,7 @@ export async function initializeDatabase() {
 
     // Get all products to create inventory for them
     const allProducts = await db.select().from(products);
-    
+
     // Add inventory for each product
     for (const product of allProducts) {
       await db.insert(inventory).values({

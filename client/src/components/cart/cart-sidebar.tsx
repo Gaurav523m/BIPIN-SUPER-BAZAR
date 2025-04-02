@@ -17,14 +17,14 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
   const [_, setLocation] = useLocation();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  
+
   const { subtotal, total } = calculateTotals();
 
   useEffect(() => {
     // Add or remove overflow hidden from body when cart is open/closed
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      
+
       // Load payment method from localStorage if available
       const savedMethod = localStorage.getItem('selectedPaymentMethod');
       if (savedMethod) {
@@ -33,26 +33,26 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
     } else {
       document.body.style.overflow = '';
     }
-    
+
     return () => {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-  
+
   const handleCheckout = () => {
     setIsCheckingOut(true);
-    
+
     // Simulate a short delay before redirecting to checkout
     setTimeout(() => {
       onClose();
       setLocation("/checkout");
     }, 1500);
   };
-  
+
   const incrementQuantity = (id: number, currentQuantity: number) => {
     updateQuantity(id, currentQuantity + 1);
   };
-  
+
   const decrementQuantity = (id: number, currentQuantity: number) => {
     if (currentQuantity > 1) {
       updateQuantity(id, currentQuantity - 1);
@@ -60,7 +60,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
       removeFromCart(id);
     }
   };
-  
+
   return (
     <>
       <AnimatePresence>
@@ -75,7 +75,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
               className="fixed inset-0 bg-black bg-opacity-50 z-40"
               onClick={onClose}
             />
-            
+
             {/* Sidebar */}
             <motion.div 
               initial={{ x: "100%" }}
@@ -92,13 +92,13 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                   className="p-4 border-b flex items-center justify-between"
                 >
                   <h2 className="text-lg font-bold">
-                    Your Cart ({cart?.reduce((total, item) => total + item.quantity, 0) || 0} items)
+                    BIPIN SUPER BAZAR Cart ({cart?.reduce((total, item) => total + item.quantity, 0) || 0} items)
                   </h2>
                   <button className="text-gray-500 hover:text-gray-700" onClick={onClose}>
                     <i className='bx bx-x text-2xl'></i>
                   </button>
                 </motion.div>
-          
+
                 <div className="flex-grow overflow-y-auto p-4">
                   {cart && cart.length > 0 ? (
                     cart.map((item) => (
@@ -114,15 +114,15 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                           alt={item.product.name} 
                           className="w-16 h-16 object-cover rounded"
                         />
-                        
+
                         <div className="flex-grow">
                           <h3 className="text-sm font-medium">{item.product.name}</h3>
                           <p className="text-xs text-gray-500">{item.product.quantity}</p>
                           <div className="mt-1 text-primary text-sm font-bold">
-                            ${(item.product.discountPrice || item.product.price).toFixed(2)}
+                            ₹{(item.product.discountPrice || item.product.price).toFixed(2)}
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center border rounded-full overflow-hidden">
                           <button 
                             className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100"
@@ -152,7 +152,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       </motion.div>
                       <p className="text-gray-500 mb-1">Your cart is empty</p>
                       <p className="text-sm text-gray-400 mb-4">Add items to get started</p>
-                      
+
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -161,7 +161,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       >
                         <GroceryBounce isOpen={true} />
                       </motion.div>
-                      
+
                       <Button 
                         className="mt-4 bg-primary text-white"
                         onClick={() => {
@@ -173,7 +173,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       </Button>
                     </div>
                   )}
-                  
+
                   {cart && cart.length > 0 && (
                     <>
                       <motion.div 
@@ -190,7 +190,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                           </div>
                         </div>
                       </motion.div>
-                      
+
                       {/* Payment Method Section */}
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
@@ -199,7 +199,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                         className="mt-6 pb-2"
                       >
                         <h3 className="text-md font-bold mb-3">Payment Method</h3>
-                        
+
                         <RadioGroup 
                           value={paymentMethod} 
                           onValueChange={(value) => {
@@ -218,7 +218,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                               </div>
                             </Label>
                           </div>
-                          
+
                           <div className="flex items-center space-x-2 border rounded-lg p-2 cursor-pointer hover:border-primary">
                             <RadioGroupItem value="upi" id="cart-upi" />
                             <Label htmlFor="cart-upi" className="flex-grow cursor-pointer">
@@ -228,7 +228,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                               </div>
                             </Label>
                           </div>
-                          
+
                           <div className="flex items-center space-x-2 border rounded-lg p-2 cursor-pointer hover:border-primary">
                             <RadioGroupItem value="cod" id="cart-cod" />
                             <Label htmlFor="cart-cod" className="flex-grow cursor-pointer">
@@ -243,7 +243,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                     </>
                   )}
                 </div>
-                
+
                 {cart && cart.length > 0 && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -254,7 +254,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Subtotal</span>
-                        <span className="font-medium">${subtotal.toFixed(2)}</span>
+                        <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Delivery Fee</span>
@@ -262,10 +262,10 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       </div>
                       <div className="flex justify-between text-sm pt-2 border-t">
                         <span className="font-medium">Total</span>
-                        <span className="font-bold">${total.toFixed(2)}</span>
+                        <span className="font-bold">₹{total.toFixed(2)}</span>
                       </div>
                     </div>
-                    
+
                     {isCheckingOut ? (
                       <div className="flex flex-col items-center py-2">
                         <p className="text-primary font-medium mb-2">Getting your groceries ready...</p>
