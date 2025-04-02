@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: grocery-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: ./start.sh
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: grocery-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+databases:
+  - name: grocery-db
+    plan: free
+    databaseName: grocerydb
+    user: groceryapp
+    ipAllowList: []

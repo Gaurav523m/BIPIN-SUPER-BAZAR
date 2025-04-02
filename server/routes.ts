@@ -559,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid inventory data", errors: error.errors });
       }
       console.error("Error creating inventory:", error);
-      return res.status(500).json({ message: "Error creating inventory", error: error.message });
+      return res.status(500).json({ message: "Error creating inventory", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -733,7 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid customer pricing data", errors: error.errors });
       }
       console.error("Error creating customer pricing:", error);
-      return res.status(500).json({ message: "Error creating customer pricing", error: error.message });
+      return res.status(500).json({ message: "Error creating customer pricing", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -825,6 +825,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error getting customer product price:", error);
       return res.status(500).json({ message: "Error getting customer product price" });
     }
+  });
+
+  // Health check endpoint for deployment monitoring
+  app.get("/api/health", (req: Request, res: Response) => {
+    return res.status(200).json({ status: "ok", message: "Service is healthy", timestamp: new Date().toISOString() });
   });
 
   const httpServer = createServer(app);
