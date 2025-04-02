@@ -17,16 +17,19 @@ import MobileNav from "@/components/layout/mobile-nav";
 function Router() {
   return (
     <Switch>
-      {/* Customer Routes */}
-      <Route path="/" component={Home} />
+      {/* Customer Routes - Make sure to use exact matching for paths that might conflict */}
       <Route path="/category/:categoryId" component={Category} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/account" component={Account} />
       <Route path="/order-confirmation/:orderId" component={OrderConfirmation} />
+      <Route path="/cart" component={Checkout} />
       
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
+      
+      {/* Home route - Has to come after other specific routes */}
+      <Route path="/" component={Home} />
       
       {/* 404 Route */}
       <Route component={NotFound} />
