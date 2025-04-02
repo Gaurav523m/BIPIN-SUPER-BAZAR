@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Category from "@/pages/category";
+import Categories from "@/pages/categories";
+import Search from "@/pages/search";
 import Checkout from "@/pages/checkout";
 import Account from "@/pages/account";
 import OrderConfirmation from "@/pages/order-confirmation";
@@ -19,6 +21,8 @@ function Router() {
     <Switch>
       {/* Customer Routes - Make sure to use exact matching for paths that might conflict */}
       <Route path="/category/:categoryId" component={Category} />
+      <Route path="/categories" component={Categories} />
+      <Route path="/search" component={Search} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/account" component={Account} />
       <Route path="/order-confirmation/:orderId" component={OrderConfirmation} />
