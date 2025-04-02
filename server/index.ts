@@ -1,6 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { PgStorage, initializeDatabase } from "./pg-storage";
+import { storage as memStorage } from "./storage";
+import { db } from "./db";
+import { migrate } from "drizzle-orm/neon-serverless/migrator";
 
 const app = express();
 app.use(express.json());
@@ -36,7 +40,28 @@ app.use((req, res, next) => {
   next();
 });
 
+// Create PostgreSQL storage implementation
+export const pgStorage = new PgStorage();
+
+// Override the memory storage with PostgreSQL storage
+import { storage } from "./storage";
+Object.assign(storage, pgStorage);
+
 (async () => {
+  try {
+    // Run database migrations (this creates tables if they don't exist)
+    console.log("Running database migrations...");
+    await migrate(db, { migrationsFolder: "./migrations" });
+    
+    // Initialize demo data if needed
+    await initializeDatabase();
+    console.log("Database setup complete");
+  } catch (error) {
+    console.error("Database initialization error:", error);
+    // Fall back to in-memory storage if database setup fails
+    console.log("Falling back to in-memory storage");
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
