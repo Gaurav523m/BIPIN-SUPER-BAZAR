@@ -1,8 +1,10 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import { z } from "zod";
-import { insertUserSchema, insertAddressSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema } from "@shared/schema";
+import { insertUserSchema, insertAddressSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertCategorySchema, insertProductSchema, insertOfferSchema } from "@shared/schema";
+import { users } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
@@ -309,6 +311,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching offers:", error);
       res.status(500).json({ message: "Failed to fetch offers" });
+    }
+  });
+
+  // Admin routes
+  // Middleware to check if the user is an admin
+  const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // In a real app, we would get user from session or token
+      const userId = req.headers['user-id'];
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized: Login required" });
+      }
+      
+      const user = await storage.getUser(parseInt(userId.toString()));
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Forbidden: Admin access required" });
+      }
+      
+      next();
+    } catch (error) {
+      console.error("Admin authorization error:", error);
+      return res.status(500).json({ message: "Error authorizing admin request" });
+    }
+  };
+  
+  // Get dashboard stats
+  app.get("/api/admin/stats", isAdmin, async (req: Request, res: Response) => {
+    try {
+      // In a real app, you would calculate these stats from actual data
+      // For now, just return some placeholder stats
+      const stats = {
+        totalOrders: 10,
+        totalRevenue: 500,
+        totalProducts: (await storage.getProducts()).length,
+        totalCustomers: 5
+      };
+      
+      return res.status(200).json(stats);
+    } catch (error) {
+      console.error("Error getting admin stats:", error);
+      return res.status(500).json({ message: "Error getting admin stats" });
+    }
+  });
+  
+  // Product management
+  app.post("/api/admin/products", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const productData = insertProductSchema.parse(req.body);
+      const newProduct = await storage.createProduct(productData);
+      return res.status(201).json(newProduct);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid product data", errors: error.errors });
+      }
+      console.error("Error creating product:", error);
+      return res.status(500).json({ message: "Error creating product" });
+    }
+  });
+  
+  // Category management
+  app.post("/api/admin/categories", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const categoryData = insertCategorySchema.parse(req.body);
+      const newCategory = await storage.createCategory(categoryData);
+      return res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      }
+      console.error("Error creating category:", error);
+      return res.status(500).json({ message: "Error creating category" });
+    }
+  });
+  
+  // Order management
+  app.get("/api/admin/orders", isAdmin, async (req: Request, res: Response) => {
+    try {
+      // In a real implementation, this would get ALL orders, not just for one user
+      // For now, just return orders for the first user as an example
+      const allUsers = await db.select().from(users);
+      const allOrders = [];
+      
+      for (const user of allUsers) {
+        const userOrders = await storage.getOrders(user.id);
+        allOrders.push(...userOrders);
+      }
+      
+      return res.status(200).json(allOrders);
+    } catch (error) {
+      console.error("Error getting admin orders:", error);
+      return res.status(500).json({ message: "Error getting admin orders" });
+    }
+  });
+  
+  app.patch("/api/admin/orders/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status || typeof status !== 'string') {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      const updatedOrder = await storage.updateOrderStatus(orderId, status);
+      
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      return res.status(200).json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      return res.status(500).json({ message: "Error updating order status" });
+    }
+  });
+  
+  // Offer management
+  app.post("/api/admin/offers", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const offerData = insertOfferSchema.parse(req.body);
+      const newOffer = await storage.createOffer(offerData);
+      return res.status(201).json(newOffer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid offer data", errors: error.errors });
+      }
+      console.error("Error creating offer:", error);
+      return res.status(500).json({ message: "Error creating offer" });
     }
   });
 

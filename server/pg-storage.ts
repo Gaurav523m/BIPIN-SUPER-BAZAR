@@ -269,6 +269,20 @@ export class PgStorage implements IStorage {
 export async function initializeDatabase() {
   // Check if tables are empty
   const categoryCount = await db.select().from(categories);
+  const userCount = await db.select().from(users);
+  
+  // Create admin user if no users exist
+  if (userCount.length === 0) {
+    await db.insert(users).values({
+      username: "admin",
+      password: "admin123", // In a real app, this would be hashed
+      name: "Admin User",
+      email: "admin@groceryapp.com",
+      role: "admin"
+    });
+    
+    console.log('Admin user created');
+  }
   
   if (categoryCount.length === 0) {
     console.log('Initializing database with demo data...');

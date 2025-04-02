@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   phone: text("phone"),
+  role: text("role").default("customer").notNull(), // 'customer' or 'admin'
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -19,6 +20,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   email: true,
   phone: true,
+  role: true,
 });
 
 // Address schema
