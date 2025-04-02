@@ -110,7 +110,7 @@ export const insertCartItemSchema = createInsertSchema(cartItems).pick({
 
 // Order schema
 export const orders = pgTable("orders", {
-  id: bigserial("id").primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   addressId: integer("address_id").notNull().references(() => addresses.id),
   totalAmount: doublePrecision("total_amount").notNull(),
