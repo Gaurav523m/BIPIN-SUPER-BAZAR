@@ -20,7 +20,7 @@ const CategoryPage: React.FC = () => {
   
   // Fetch products by category
   const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
-    queryKey: ["/api/products", { categoryId }],
+    queryKey: [`/api/products?categoryId=${categoryId}`],
   });
   
   const openProductModal = (product: Product) => {

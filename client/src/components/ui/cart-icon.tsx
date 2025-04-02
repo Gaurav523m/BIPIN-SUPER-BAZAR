@@ -1,28 +1,30 @@
 import React from "react";
-import { useLocation } from "wouter";
 import useCart from "@/hooks/use-cart";
 
 interface CartIconProps {
   className?: string;
   showCount?: boolean;
   isMobile?: boolean;
+  onClick?: () => void;
 }
 
 const CartIcon: React.FC<CartIconProps> = ({ 
   className = "",
   showCount = true,
-  isMobile = false
+  isMobile = false,
+  onClick
 }) => {
   const { cart } = useCart();
-  const [_, setLocation] = useLocation();
   
   const itemCount = cart?.reduce((acc, item) => acc + item.quantity, 0) || 0;
   
   return (
-    <button 
-      onClick={() => setLocation("/checkout")}
-      className={`relative ${className}`}
+    <div 
+      onClick={onClick}
+      className={`relative cursor-pointer ${className}`}
       aria-label="View cart"
+      role="button"
+      tabIndex={0}
     >
       <i className='bx bx-shopping-bag text-2xl'></i>
       {showCount && itemCount > 0 && (
@@ -30,7 +32,7 @@ const CartIcon: React.FC<CartIconProps> = ({
           {itemCount > 99 ? '99+' : itemCount}
         </span>
       )}
-    </button>
+    </div>
   );
 };
 

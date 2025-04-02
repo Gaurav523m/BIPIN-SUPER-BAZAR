@@ -81,12 +81,7 @@ const Header: React.FC = () => {
               <span className="text-sm font-medium">Account</span>
             </button>
             
-            <button 
-              onClick={toggleCart}
-              aria-label="Open cart"
-            >
-              <CartIcon />
-            </button>
+            <CartIcon onClick={toggleCart} />
           </div>
         </div>
         
@@ -110,7 +105,7 @@ const Header: React.FC = () => {
               categories?.map((category) => (
                 <Link 
                   key={category.id}
-                  href={`/category/${category.id}`}
+                  to={`/category/${category.id}`}
                   className="flex flex-col items-center gap-1 min-w-fit pb-1 border-b-2 border-transparent hover:border-primary"
                 >
                   <span className="text-sm font-medium">{category.name}</span>
