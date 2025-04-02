@@ -279,9 +279,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid order format - missing order details or items" });
       }
 
-      // Check if address exists
+      // Check if address exists and validate addressId
+      const addressId = parseInt(order.addressId.toString());
+      if (isNaN(addressId)) {
+        return res.status(400).json({
+          message: "Invalid address ID format",
+          error: "The address ID must be a valid number"
+        });
+      }
+
       const address = await db.query.addresses.findFirst({
-        where: (addresses, { eq }) => eq(addresses.id, order.addressId)
+        where: (addresses, { eq }) => eq(addresses.id, addressId)
       });
 
       if (!address) {
