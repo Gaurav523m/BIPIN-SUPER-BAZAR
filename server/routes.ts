@@ -277,11 +277,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const orderInput = insertOrderSchema.parse(order);
       
-      // Validate all order items
-      const orderItemsInput = z.array(insertOrderItemSchema).parse(items);
+      // First create the order
+      const newOrder = await db.insert(orders).values(orderInput).returning();
+      const orderId = newOrder[0].id;
       
-      const newOrder = await storage.createOrder(orderInput, orderItemsInput);
-      const orderWithItems = await storage.getOrder(newOrder.id);
+      // Add the orderId to each order item
+      const orderItemsWithId = items.map((item: any) => ({
+        ...item,
+        orderId: orderId
+      }));
+      
+      // Now validate the order items with the orderId
+      const orderItemsInput = z.array(insertOrderItemSchema).parse(orderItemsWithId);
+      
+      // Insert the order items
+      for (const item of orderItemsInput) {
+        await db.insert(orderItems).values(item);
+      }
+      
+      // Get the full order with items
+      const orderWithItems = await storage.getOrder(orderId);
       
       res.status(201).json(orderWithItems);
     } catch (error) {
