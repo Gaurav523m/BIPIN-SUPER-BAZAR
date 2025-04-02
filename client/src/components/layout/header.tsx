@@ -5,14 +5,13 @@ import CartIcon from "@/components/ui/cart-icon";
 import CartSidebar from "@/components/cart/cart-sidebar";
 import LocationModal from "@/components/location/location-modal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import Search from "@/components/ui/search";
 import { Category } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
 const Header: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -21,10 +20,9 @@ const Header: React.FC = () => {
     queryKey: ["/api/categories"],
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setLocation(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+  const handleSearch = (query: string) => {
+    if (query.trim()) {
+      setLocation(`/?search=${encodeURIComponent(query.trim())}`);
     }
   };
 
@@ -67,25 +65,10 @@ const Header: React.FC = () => {
           
           {/* Search Bar (Desktop) */}
           <div className="hidden md:block flex-grow mx-8 max-w-2xl">
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Search for groceries, vegetables, fruits..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2 px-4 pr-10 rounded-lg border border-gray-300"
-                />
-                <Button 
-                  type="submit"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500"
-                >
-                  <i className='bx bx-search text-xl'></i>
-                </Button>
-              </div>
-            </form>
+            <Search 
+              placeholder="Search for groceries, vegetables, fruits..."
+              onSearch={handleSearch}
+            />
           </div>
           
           {/* User Actions */}
@@ -109,25 +92,10 @@ const Header: React.FC = () => {
         
         {/* Mobile Search (Only visible on mobile) */}
         <div className="md:hidden px-3 pb-3">
-          <form onSubmit={handleSearch}>
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Search for groceries..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-2 px-4 pr-10 rounded-lg border border-gray-300"
-              />
-              <Button 
-                type="submit"
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500"
-              >
-                <i className='bx bx-search text-xl'></i>
-              </Button>
-            </div>
-          </form>
+          <Search 
+            placeholder="Search for groceries..."
+            onSearch={handleSearch}
+          />
         </div>
         
         {/* Category Navigation */}

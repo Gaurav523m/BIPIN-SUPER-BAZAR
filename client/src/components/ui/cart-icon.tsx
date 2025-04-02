@@ -20,7 +20,7 @@ const CartIcon: React.FC<CartIconProps> = ({
   
   return (
     <button 
-      onClick={() => setLocation(isMobile ? "/cart" : "/")}
+      onClick={() => setLocation("/checkout")}
       className={`relative ${className}`}
       aria-label="View cart"
     >
