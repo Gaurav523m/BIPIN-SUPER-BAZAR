@@ -2,9 +2,12 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { useAdminStore } from '@/store/admin-store';
 import { useToast } from '@/hooks/use-toast';
+import ProductManagement from '@/components/admin/ProductManagement';
+import CategoryManagement from '@/components/admin/CategoryManagement';
 import { apiRequest } from '@/lib/queryClient';
 
 export default function AdminDashboard() {
@@ -113,13 +116,41 @@ export default function AdminDashboard() {
         </Card>
       </div>
       
-      {/* Coming soon message */}
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 text-center">
-        <h3 className="text-xl font-semibold mb-2">Management Interface Coming Soon</h3>
-        <p className="text-muted-foreground">
-          Product, category, order, and offer management capabilities are currently in development.
-        </p>
-      </div>
+      {/* Management interface tabs */}
+      <Tabs defaultValue="products" className="w-full">
+        <TabsList className="grid grid-cols-4 mb-8">
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="offers">Offers</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="products">
+          <ProductManagement />
+        </TabsContent>
+        
+        <TabsContent value="categories">
+          <CategoryManagement />
+        </TabsContent>
+        
+        <TabsContent value="orders">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">Order Management Coming Soon</h3>
+            <p className="text-muted-foreground">
+              Order management capabilities are currently in development.
+            </p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="offers">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">Offer Management Coming Soon</h3>
+            <p className="text-muted-foreground">
+              Offer management capabilities are currently in development.
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

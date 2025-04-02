@@ -48,9 +48,13 @@ const productFormSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   description: z.string().min(1, 'Description is required'),
   price: z.coerce.number().positive('Price must be positive'),
-  imageUrl: z.string().url('Must be a valid URL'),
-  stock: z.coerce.number().int().nonnegative('Stock must be a positive number'),
+  image: z.string().url('Must be a valid URL').optional().nullable(),
+  discountPrice: z.coerce.number().min(0, 'Discount price must be non-negative').optional().nullable(),
+  quantity: z.string().min(1, 'Quantity information is required (e.g., "500g", "1kg")'),
   categoryId: z.coerce.number().int().positive('Category is required'),
+  isOrganic: z.boolean().default(false),
+  inStock: z.boolean().default(true),
+  nutritionInfo: z.any().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -65,7 +69,12 @@ export default function ProductManagement() {
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ['/api/products'],
     queryFn: async () => {
-      const response = await apiRequest('/api/products');
+      const response = await fetch('/api/products', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
       return response.json();
     },
   });
@@ -74,7 +83,12 @@ export default function ProductManagement() {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: async () => {
-      const response = await apiRequest('/api/categories');
+      const response = await fetch('/api/categories', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
       return response.json();
     },
   });
@@ -86,22 +100,40 @@ export default function ProductManagement() {
       name: '',
       description: '',
       price: 0,
-      imageUrl: '',
-      stock: 0,
-      categoryId: 0,
+      image: '',
+      discountPrice: null,
+      quantity: '1kg',
+      categoryId: 1,
+      isOrganic: false,
+      inStock: true,
+      nutritionInfo: {},
     },
   });
 
   // Create product mutation
   const { mutate: createProduct, isPending: isCreating } = useMutation({
     mutationFn: async (data: ProductFormValues) => {
-      const response = await apiRequest('/api/admin/products', {
+      // Create headers with authentication
+      const headers = new Headers();
+      headers.append('Content-Type', 'application/json');
+      if (user) {
+        headers.append('user-id', user.id.toString());
+      }
+
+      const response = await fetch('/api/admin/products', {
         method: 'POST',
-        headers: {
-          'user-id': user?.id.toString() || '',
-        },
+        headers: headers,
         body: JSON.stringify(data),
+        credentials: 'include'
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: `HTTP error! status: ${response.status}`
+        }));
+        throw new Error(errorData.message || 'Failed to create product');
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -117,7 +149,7 @@ export default function ProductManagement() {
       console.error('Error creating product:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create product. Please try again.',
+        description: (error instanceof Error) ? error.message : 'Failed to create product. Please try again.',
         variant: 'destructive',
       });
     },
@@ -132,9 +164,13 @@ export default function ProductManagement() {
       name: '',
       description: '',
       price: 0,
-      imageUrl: '',
-      stock: 0,
-      categoryId: 0,
+      image: '',
+      discountPrice: null,
+      quantity: '1kg',
+      categoryId: 1,
+      isOrganic: false,
+      inStock: true,
+      nutritionInfo: {},
     });
     setIsDialogOpen(true);
   };
@@ -211,12 +247,15 @@ export default function ProductManagement() {
                 
                 <FormField
                   control={form.control}
-                  name="stock"
+                  name="discountPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Stock</FormLabel>
+                      <FormLabel>Discount Price ($)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" placeholder="0" {...field} />
+                        <Input type="number" step="0.01" min="0" placeholder="0.00" {...field} 
+                          value={field.value === null ? '' : field.value}
+                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseFloat(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -226,17 +265,72 @@ export default function ProductManagement() {
               
               <FormField
                 control={form.control}
-                name="imageUrl"
+                name="image"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Image URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/image.jpg" {...field} />
+                      <Input placeholder="https://example.com/image.jpg" {...field} 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity (e.g., "500g", "1kg", "6pcs")</FormLabel>
+                    <FormControl>
+                      <Input placeholder="1kg" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="isOrganic"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">Organic Product</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="inStock"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal">In Stock</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <FormField
                 control={form.control}
@@ -287,14 +381,15 @@ export default function ProductManagement() {
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
+              <TableHead>Quantity</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   No products found
                 </TableCell>
               </TableRow>
@@ -302,18 +397,41 @@ export default function ProductManagement() {
               products.map((product: Product) => (
                 <TableRow key={product.id}>
                   <TableCell>
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="w-16 h-16 object-cover rounded"
-                    />
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-500">
+                        No image
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
                     {categories.find((c: Category) => c.id === product.categoryId)?.name || 'Unknown'}
                   </TableCell>
-                  <TableCell>${product.price.toFixed(2)}</TableCell>
-                  <TableCell>{product.stock}</TableCell>
+                  <TableCell>
+                    ${product.price.toFixed(2)}
+                    {product.discountPrice && (
+                      <span className="ml-2 text-sm text-green-600">
+                        Sale: ${product.discountPrice.toFixed(2)}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>{product.quantity}</TableCell>
+                  <TableCell>
+                    <span className={product.inStock ? 'text-green-600' : 'text-red-600'}>
+                      {product.inStock ? 'In Stock' : 'Out of Stock'}
+                    </span>
+                    {product.isOrganic && (
+                      <span className="ml-2 text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                        Organic
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleSelectProduct(product)}>
                       Edit

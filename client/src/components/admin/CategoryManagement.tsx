@@ -1,27 +1,18 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { Category } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
-import { useAdminStore } from '@/store/admin-store';
-import { useToast } from '@/hooks/use-toast';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -31,108 +22,114 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { useAdminStore } from '@/store/admin-store';
+import { apiRequest } from '@/lib/queryClient';
+import type { Category } from '@shared/schema';
 
-// Form validation schema based on category schema
 const categoryFormSchema = z.object({
-  name: z.string().min(1, 'Category name is required'),
-  imageUrl: z.string().url('Must be a valid URL'),
+  name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
+  description: z.string().optional(),
+  icon: z.string().optional(),
 });
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
 export default function CategoryManagement() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user, selectedCategory, setSelectedCategory } = useAdminStore();
+  const queryClient = useQueryClient();
+  const { user } = useAdminStore();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   // Fetch categories
-  const { data: categories = [], isLoading } = useQuery({
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/categories');
-      return response.json();
-    },
+    enabled: true,
   });
 
-  // Form setup
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: {
       name: '',
-      imageUrl: '',
+      description: '',
+      icon: '',
     },
   });
 
   // Create category mutation
-  const { mutate: createCategory, isPending: isCreating } = useMutation({
+  const createCategory = useMutation({
     mutationFn: async (data: CategoryFormValues) => {
-      const response = await apiRequest('/api/admin/categories', {
+      return await apiRequest('/api/admin/categories', {
         method: 'POST',
         headers: {
-          'user-id': user?.id.toString() || '',
+          'user-id': user?.id.toString() || ''
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({
-        title: 'Success',
-        description: 'Category created successfully',
-      });
       setIsDialogOpen(false);
       form.reset();
+      toast({
+        title: "Success",
+        description: "Category has been created successfully.",
+      });
     },
     onError: (error) => {
-      console.error('Error creating category:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to create category. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: `Failed to create category: ${error.message}`,
+        variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: CategoryFormValues) => {
-    createCategory(data);
-  };
-
-  const handleAddNew = () => {
-    form.reset({
-      name: '',
-      imageUrl: '',
-    });
-    setIsDialogOpen(true);
+    if (selectedCategory) {
+      // Update logic would go here
+      toast({
+        title: "Update Feature",
+        description: "Category update functionality is coming soon.",
+      });
+    } else {
+      createCategory.mutate(data);
+    }
   };
 
   const handleSelectCategory = (category: Category) => {
     setSelectedCategory(category);
-    // In a full implementation, we would use this to open an edit dialog
-    toast({
-      title: 'Category Selected',
-      description: `Selected ${category.name} for editing`,
+    form.reset({
+      name: category.name,
+      description: category.description || '',
+      icon: category.icon || '',
     });
+    setIsDialogOpen(true);
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  const handleAddNew = () => {
+    setSelectedCategory(null);
+    form.reset({
+      name: '',
+      description: '',
+      icon: '',
+    });
+    setIsDialogOpen(true);
+  };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Categories</h2>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Category Management</h2>
         <Button onClick={handleAddNew}>Add New Category</Button>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add New Category</DialogTitle>
+            <DialogTitle>{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -141,37 +138,48 @@ export default function CategoryManagement() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category Name</FormLabel>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter category name" {...field} />
+                      <Input placeholder="Category name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
-                name="imageUrl"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Image URL</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/image.jpg" {...field} />
+                      <Textarea placeholder="Category description" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <FormField
+                control={form.control}
+                name="icon"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Icon</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Icon class (e.g., bx-lemon)" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isCreating}>
-                  {isCreating ? 'Creating...' : 'Create Category'}
+                <Button type="submit" disabled={createCategory.isPending}>
+                  {createCategory.isPending ? 'Saving...' : 'Save'}
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </Form>
         </DialogContent>
@@ -181,9 +189,9 @@ export default function CategoryManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Image</TableHead>
+              <TableHead>Icon</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Product Count</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -198,17 +206,16 @@ export default function CategoryManagement() {
               categories.map((category: Category) => (
                 <TableRow key={category.id}>
                   <TableCell>
-                    <img
-                      src={category.imageUrl}
-                      alt={category.name}
-                      className="w-16 h-16 object-cover rounded"
-                    />
+                    {category.icon ? (
+                      <i className={`bx ${category.icon} text-2xl`}></i>
+                    ) : (
+                      <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-gray-500">
+                        <i className="bx bx-category text-lg"></i>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell>
-                    {/* In a full implementation, we would fetch this count from the API */}
-                    -
-                  </TableCell>
+                  <TableCell>{category.description || '-'}</TableCell>
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => handleSelectCategory(category)}>
                       Edit
