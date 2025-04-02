@@ -18,7 +18,7 @@ import {
   insertCustomerPricingSchema,
   insertUserPricingTierSchema
 } from "@shared/schema";
-import { users } from "@shared/schema";
+import { users, orders, orderItems } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
