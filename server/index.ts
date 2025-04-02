@@ -4,7 +4,6 @@ import { setupVite, serveStatic, log } from "./vite";
 import { PgStorage, initializeDatabase } from "./pg-storage";
 import { storage as memStorage } from "./storage";
 import { db } from "./db";
-import { migrate } from "drizzle-orm/neon-serverless/migrator";
 
 const app = express();
 app.use(express.json());
@@ -49,10 +48,6 @@ Object.assign(storage, pgStorage);
 
 (async () => {
   try {
-    // Run database migrations (this creates tables if they don't exist)
-    console.log("Running database migrations...");
-    await migrate(db, { migrationsFolder: "./migrations" });
-    
     // Initialize demo data if needed
     await initializeDatabase();
     console.log("Database setup complete");

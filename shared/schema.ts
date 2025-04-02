@@ -176,6 +176,7 @@ export const inventory = pgTable("inventory", {
   stockQuantity: integer("stock_quantity").notNull().default(0),
   minStockLevel: integer("min_stock_level").default(5), // Threshold for reordering
   maxStockLevel: integer("max_stock_level"), // Maximum stock capacity
+  reorderPoint: integer("reorder_point"), // Point at which to reorder
   locationCode: text("location_code"), // Storage location identifier
   lastStockUpdate: timestamp("last_stock_update").defaultNow(),
   lastReceivedDate: timestamp("last_received_date"),
@@ -190,6 +191,7 @@ export const insertInventorySchema = createInsertSchema(inventory).pick({
   locationCode: true,
   lastReceivedDate: true,
   lastReceivedQuantity: true,
+  reorderPoint: true,
 });
 
 // Stock Transaction History schema

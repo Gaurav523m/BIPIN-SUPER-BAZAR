@@ -1,2 +1,2 @@
--- Add role column to users table
-ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'customer';
+-- This migration adds the reorder_point column to the inventory table
+ALTER TABLE IF EXISTS "inventory" ADD COLUMN IF NOT EXISTS "reorder_point" INTEGER;
