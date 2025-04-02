@@ -12,25 +12,52 @@ import Account from "@/pages/account";
 import OrderConfirmation from "@/pages/order-confirmation";
 import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import MobileNav from "@/components/layout/mobile-nav";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 function Router() {
   return (
     <Switch>
-      {/* Customer Routes - Make sure to use exact matching for paths that might conflict */}
+      {/* Public Customer Routes */}
       <Route path="/category/:categoryId" component={Category} />
       <Route path="/categories" component={Categories} />
       <Route path="/search" component={Search} />
-      <Route path="/checkout" component={Checkout} />
-      <Route path="/account" component={Account} />
-      <Route path="/order-confirmation/:orderId" component={OrderConfirmation} />
-      <Route path="/cart" component={Checkout} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      
+      {/* Protected Customer Routes */}
+      <Route path="/checkout">
+        <ProtectedRoute>
+          <Checkout />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/account">
+        <ProtectedRoute>
+          <Account />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/order-confirmation/:orderId">
+        <ProtectedRoute>
+          <OrderConfirmation />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/cart">
+        <ProtectedRoute>
+          <Checkout />
+        </ProtectedRoute>
+      </Route>
       
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/admin/dashboard">
+        <ProtectedRoute adminOnly={true}>
+          <AdminDashboard />
+        </ProtectedRoute>
+      </Route>
       
       {/* Home route - Has to come after other specific routes */}
       <Route path="/" component={Home} />
