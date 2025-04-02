@@ -15,8 +15,9 @@ const Header: React.FC = () => {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   
-  // Check if we're on the cart page
+  // Check if we're on the cart or account page
   const isCartPage = location === "/cart";
+  const isAccountPage = location === "/account" || location.startsWith("/account/");
 
   // Fetch categories
   const { data: categories, isLoading } = useQuery<Category[]>({
@@ -72,8 +73,8 @@ const Header: React.FC = () => {
             </button>
           </div>
           
-          {/* Search Bar (Desktop) - Hide on cart page */}
-          {!isCartPage && (
+          {/* Search Bar (Desktop) - Hide on cart and account pages */}
+          {!isCartPage && !isAccountPage && (
             <div className="hidden md:block flex-grow mx-8 max-w-2xl">
               <Search 
                 placeholder="Search for groceries, vegetables, fruits..."
@@ -96,8 +97,8 @@ const Header: React.FC = () => {
           </div>
         </div>
         
-        {/* Mobile Search (Only visible on mobile and not on cart page) */}
-        {!isCartPage && (
+        {/* Mobile Search (Only visible on mobile and not on cart or account page) */}
+        {!isCartPage && !isAccountPage && (
           <div className="md:hidden px-3 pb-3">
             <Search 
               placeholder="Search for groceries..."
