@@ -1,5 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import useCart from "@/hooks/use-cart";
 import { useLocation } from "wouter";
 
@@ -11,6 +13,7 @@ interface CartSidebarProps {
 const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
   const { cart, updateQuantity, removeFromCart, calculateTotals } = useCart();
   const [_, setLocation] = useLocation();
+  const [paymentMethod, setPaymentMethod] = useState("card");
   
   const { subtotal, total } = calculateTotals();
 
@@ -18,6 +21,12 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
     // Add or remove overflow hidden from body when cart is open/closed
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      
+      // Load payment method from localStorage if available
+      const savedMethod = localStorage.getItem('selectedPaymentMethod');
+      if (savedMethod) {
+        setPaymentMethod(savedMethod);
+      }
     } else {
       document.body.style.overflow = '';
     }
@@ -123,15 +132,62 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
             )}
             
             {cart && cart.length > 0 && (
-              <div className="mt-4">
-                <div className="bg-green-50 rounded-lg p-3 flex items-center gap-2">
-                  <i className='bx bx-check-circle text-green-500 text-xl'></i>
-                  <div>
-                    <p className="text-sm font-medium text-green-800">Free delivery on this order!</p>
-                    <p className="text-xs text-green-700">Delivery in 10 minutes</p>
+              <>
+                <div className="mt-4">
+                  <div className="bg-green-50 rounded-lg p-3 flex items-center gap-2">
+                    <i className='bx bx-check-circle text-green-500 text-xl'></i>
+                    <div>
+                      <p className="text-sm font-medium text-green-800">Free delivery on this order!</p>
+                      <p className="text-xs text-green-700">Delivery in 10 minutes</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+                
+                {/* Payment Method Section */}
+                <div className="mt-6 pb-2">
+                  <h3 className="text-md font-bold mb-3">Payment Method</h3>
+                  
+                  <RadioGroup 
+                    value={paymentMethod} 
+                    onValueChange={(value) => {
+                      setPaymentMethod(value);
+                      // Save to localStorage to maintain consistency between screens
+                      localStorage.setItem('selectedPaymentMethod', value);
+                    }}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center space-x-2 border rounded-lg p-2 cursor-pointer hover:border-primary">
+                      <RadioGroupItem value="card" id="cart-card" />
+                      <Label htmlFor="cart-card" className="flex-grow cursor-pointer">
+                        <div className="flex items-center">
+                          <i className='bx bx-credit-card text-lg mr-2'></i>
+                          <span className="text-sm">Credit/Debit Card</span>
+                        </div>
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 border rounded-lg p-2 cursor-pointer hover:border-primary">
+                      <RadioGroupItem value="upi" id="cart-upi" />
+                      <Label htmlFor="cart-upi" className="flex-grow cursor-pointer">
+                        <div className="flex items-center">
+                          <i className='bx bx-mobile text-lg mr-2'></i>
+                          <span className="text-sm">UPI Payment</span>
+                        </div>
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 border rounded-lg p-2 cursor-pointer hover:border-primary">
+                      <RadioGroupItem value="cod" id="cart-cod" />
+                      <Label htmlFor="cart-cod" className="flex-grow cursor-pointer">
+                        <div className="flex items-center">
+                          <i className='bx bx-money text-lg mr-2'></i>
+                          <span className="text-sm">Cash on Delivery</span>
+                        </div>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </>
             )}
           </div>
           

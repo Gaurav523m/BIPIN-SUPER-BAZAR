@@ -14,7 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const CheckoutPage: React.FC = () => {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  // Initialize from localStorage if available, otherwise use default
+  const [paymentMethod, setPaymentMethod] = useState(() => {
+    const savedMethod = typeof window !== 'undefined' ? localStorage.getItem('selectedPaymentMethod') : null;
+    return savedMethod || "card";
+  });
   const { cart, calculateTotals, clearCart } = useCart();
   const { selectedAddress, savedAddresses } = useAddress();
   const [_, setLocation] = useLocation();
@@ -149,7 +153,11 @@ const CheckoutPage: React.FC = () => {
               
               <RadioGroup 
                 value={paymentMethod} 
-                onValueChange={setPaymentMethod}
+                onValueChange={(value) => {
+                  setPaymentMethod(value);
+                  // Save to localStorage to maintain consistency between screens
+                  localStorage.setItem('selectedPaymentMethod', value);
+                }}
                 className="space-y-3"
               >
                 <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:border-primary">
