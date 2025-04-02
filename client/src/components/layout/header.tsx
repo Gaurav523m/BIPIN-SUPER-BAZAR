@@ -12,8 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 const Header: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [_, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  // Check if we're on the cart page
+  const isCartPage = location === "/cart";
 
   // Fetch categories
   const { data: categories, isLoading } = useQuery<Category[]>({
@@ -69,13 +72,15 @@ const Header: React.FC = () => {
             </button>
           </div>
           
-          {/* Search Bar (Desktop) */}
-          <div className="hidden md:block flex-grow mx-8 max-w-2xl">
-            <Search 
-              placeholder="Search for groceries, vegetables, fruits..."
-              onSearch={handleSearch}
-            />
-          </div>
+          {/* Search Bar (Desktop) - Hide on cart page */}
+          {!isCartPage && (
+            <div className="hidden md:block flex-grow mx-8 max-w-2xl">
+              <Search 
+                placeholder="Search for groceries, vegetables, fruits..."
+                onSearch={handleSearch}
+              />
+            </div>
+          )}
           
           {/* User Actions */}
           <div className="flex items-center gap-6">
@@ -91,13 +96,15 @@ const Header: React.FC = () => {
           </div>
         </div>
         
-        {/* Mobile Search (Only visible on mobile) */}
-        <div className="md:hidden px-3 pb-3">
-          <Search 
-            placeholder="Search for groceries..."
-            onSearch={handleSearch}
-          />
-        </div>
+        {/* Mobile Search (Only visible on mobile and not on cart page) */}
+        {!isCartPage && (
+          <div className="md:hidden px-3 pb-3">
+            <Search 
+              placeholder="Search for groceries..."
+              onSearch={handleSearch}
+            />
+          </div>
+        )}
       </div>
 
       {/* Cart Sidebar */}

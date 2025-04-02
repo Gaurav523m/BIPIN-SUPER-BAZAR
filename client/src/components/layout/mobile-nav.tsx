@@ -22,11 +22,6 @@ const MobileNav: React.FC = () => {
           <span className="text-xs mt-1">Categories</span>
         </Link>
         
-        <Link to="/search" className={`flex flex-col items-center ${isActive("/search")}`}>
-          <i className='bx bx-search text-xl'></i>
-          <span className="text-xs mt-1">Search</span>
-        </Link>
-        
         <Link to="/cart" className="flex flex-col items-center text-gray-500 hover:text-primary">
           <div className="relative">
             <CartIcon isMobile={true} />
