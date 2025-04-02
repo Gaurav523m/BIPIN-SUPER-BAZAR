@@ -1,26 +1,65 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import ProductCard from "@/components/product/product-card";
 import ProductDetailModal from "@/components/product/product-detail-modal";
 import { Product, Category } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 const CategoryPage: React.FC = () => {
-  const { categoryId } = useParams();
+  const params = useParams();
+  const categoryId = params.categoryId;
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   
+  console.log("Category page rendered with categoryId:", categoryId);
+  
+  useEffect(() => {
+    if (!categoryId || isNaN(parseInt(categoryId))) {
+      console.error("Invalid category ID:", categoryId);
+      toast({
+        title: "Error",
+        description: "Invalid category ID. Redirecting to home page.",
+        variant: "destructive"
+      });
+      setLocation("/");
+    }
+  }, [categoryId, setLocation, toast]);
+  
   // Fetch category
-  const { data: category, isLoading: isLoadingCategory } = useQuery<Category>({
+  const { 
+    data: category, 
+    isLoading: isLoadingCategory,
+    isError: isCategoryError
+  } = useQuery<Category>({
     queryKey: [`/api/categories/${categoryId}`],
+    enabled: !!categoryId && !isNaN(parseInt(categoryId)),
+    onSuccess: (data) => {
+      console.log("Category data loaded:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading category:", error);
+    }
   });
   
   // Fetch products by category
-  const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
+  const { 
+    data: products, 
+    isLoading: isLoadingProducts,
+    isError: isProductsError
+  } = useQuery<Product[]>({
     queryKey: [`/api/products?categoryId=${categoryId}`],
+    enabled: !!categoryId && !isNaN(parseInt(categoryId)),
+    onSuccess: (data) => {
+      console.log("Products loaded for category:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading products for category:", error);
+    }
   });
   
   const openProductModal = (product: Product) => {

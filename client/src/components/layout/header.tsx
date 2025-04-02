@@ -18,6 +18,12 @@ const Header: React.FC = () => {
   // Fetch categories
   const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
+    onSuccess: (data) => {
+      console.log("Categories loaded:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading categories:", error);
+    }
   });
 
   const handleSearch = (query: string) => {
@@ -45,7 +51,7 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between p-3 lg:px-6">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <span className="text-primary text-3xl"><i className='bx bx-cart'></i></span>
               <span className="text-xl font-bold">QuickCart</span>
             </Link>
@@ -107,6 +113,7 @@ const Header: React.FC = () => {
                   key={category.id}
                   to={`/category/${category.id}`}
                   className="flex flex-col items-center gap-1 min-w-fit pb-1 border-b-2 border-transparent hover:border-primary"
+                  onClick={() => console.log(`Category clicked: ${category.name}, ID: ${category.id}`)}
                 >
                   <span className="text-sm font-medium">{category.name}</span>
                 </Link>

@@ -37,13 +37,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/categories/:id", async (req: Request, res: Response) => {
     try {
+      console.log("Category request received for ID:", req.params.id);
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
+        console.log("Invalid category ID:", req.params.id);
         return res.status(400).json({ message: "Invalid category ID" });
       }
       
       const category = await storage.getCategory(id);
+      console.log("Category found:", category);
+      
       if (!category) {
+        console.log("Category not found for ID:", id);
         return res.status(404).json({ message: "Category not found" });
       }
       
@@ -57,18 +62,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products
   app.get("/api/products", async (req: Request, res: Response) => {
     try {
+      console.log("Products request received with query params:", req.query);
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
       const search = req.query.search as string | undefined;
       
       let products;
       if (categoryId && !isNaN(categoryId)) {
+        console.log("Fetching products for category ID:", categoryId);
         products = await storage.getProductsByCategory(categoryId);
       } else if (search) {
+        console.log("Searching products with query:", search);
         products = await storage.searchProducts(search);
       } else {
+        console.log("Fetching all products");
         products = await storage.getProducts();
       }
       
+      console.log(`Products found: ${products.length}`);
       res.json(products);
     } catch (error) {
       console.error("Error fetching products:", error);
