@@ -275,10 +275,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { order, items } = req.body;
       
+      if (!order || !items || !Array.isArray(items)) {
+        return res.status(400).json({ message: "Invalid order format - missing order details or items" });
+      }
+
+      // Validate order input
       const orderInput = insertOrderSchema.parse(order);
       
       // First create the order
       const newOrder = await db.insert(orders).values(orderInput).returning();
+      if (!newOrder || !newOrder[0]) {
+        throw new Error("Failed to create order record");
+      }
+      
       const orderId = newOrder[0].id;
       
       // Add the orderId to each order item
@@ -297,14 +306,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get the full order with items
       const orderWithItems = await storage.getOrder(orderId);
+      if (!orderWithItems) {
+        throw new Error("Order created but failed to retrieve details");
+      }
       
       res.status(201).json(orderWithItems);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid order data", errors: error.errors });
-      }
       console.error("Error creating order:", error);
-      res.status(500).json({ message: "Failed to create order" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid order data", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ 
+        message: "Failed to create order",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
   
