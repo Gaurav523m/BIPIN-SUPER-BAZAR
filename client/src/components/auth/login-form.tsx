@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import GoogleLoginButton from "./google-login-button";
+import { Separator } from "@/components/ui/separator";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -53,7 +55,7 @@ const LoginForm: React.FC = () => {
       toast({
         title: "Login Successful",
         description: "Welcome back!",
-        variant: "success",
+        variant: "default",
       });
       setLocation("/");
     },
@@ -74,6 +76,22 @@ const LoginForm: React.FC = () => {
     <div className="w-full max-w-md mx-auto rounded-lg border p-6 shadow-sm">
       <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
       
+      {/* Google Login Button */}
+      <div className="mb-4">
+        <GoogleLoginButton />
+      </div>
+      
+      {/* Separator */}
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <Separator className="w-full" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-2 text-xs text-gray-500">OR</span>
+        </div>
+      </div>
+      
+      {/* Regular Login Form */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField

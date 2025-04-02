@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import GoogleLoginButton from "./google-login-button";
+import { Separator } from "@/components/ui/separator";
 
 const registerSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -51,7 +53,7 @@ const RegisterForm: React.FC = () => {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: Omit<RegisterFormValues, "confirmPassword">) => {
+    mutationFn: async (data: RegisterFormValues) => {
       const { confirmPassword, ...userData } = data;
       const response = await apiRequest('POST', '/api/users', {
         ...userData,
@@ -69,7 +71,7 @@ const RegisterForm: React.FC = () => {
       toast({
         title: "Registration Successful",
         description: "Your account has been created successfully.",
-        variant: "success",
+        variant: "default",
       });
       setLocation("/");
     },
@@ -90,6 +92,22 @@ const RegisterForm: React.FC = () => {
     <div className="w-full max-w-md mx-auto rounded-lg border p-6 shadow-sm">
       <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
       
+      {/* Google Login Button */}
+      <div className="mb-4">
+        <GoogleLoginButton />
+      </div>
+      
+      {/* Separator */}
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <Separator className="w-full" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-2 text-xs text-gray-500">OR REGISTER WITH EMAIL</span>
+        </div>
+      </div>
+      
+      {/* Registration Form */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
