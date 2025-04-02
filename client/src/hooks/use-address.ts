@@ -20,7 +20,7 @@ interface AddAddressParams {
 const useAddress = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   // Local state from store
   const {
     selectedAddress,
@@ -31,10 +31,10 @@ const useAddress = () => {
     updateAddress: updateAddressLocal,
     setDefaultAddress
   } = useUserStore();
-  
+
   // In a real application with an API, we would have these queries
   // For now, we'll just use the local store state
-  
+
   /*
   // Fetch addresses query
   const addressesQuery = useQuery({
@@ -43,7 +43,7 @@ const useAddress = () => {
       // Update local store with fetched addresses
     }
   });
-  
+
   // Add address mutation
   const addAddressMutation = useMutation({
     mutationFn: async (data: AddAddressParams) => {
@@ -53,13 +53,13 @@ const useAddress = () => {
         userId,
         ...data
       };
-      
+
       const response = await apiRequest('POST', '/api/addresses', payload);
       return response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/addresses'] });
-      
+
       toast({
         title: 'Address Added',
         description: 'Your address has been added successfully',
@@ -74,7 +74,7 @@ const useAddress = () => {
       });
     }
   });
-  
+
   // Update address mutation
   const updateAddressMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<AddAddressParams> }) => {
@@ -83,7 +83,7 @@ const useAddress = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/addresses'] });
-      
+
       toast({
         title: 'Address Updated',
         description: 'Your address has been updated successfully',
@@ -98,7 +98,7 @@ const useAddress = () => {
       });
     }
   });
-  
+
   // Remove address mutation
   const removeAddressMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -107,7 +107,7 @@ const useAddress = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/addresses'] });
-      
+
       toast({
         title: 'Address Removed',
         description: 'Your address has been removed successfully',
@@ -123,51 +123,61 @@ const useAddress = () => {
     }
   });
   */
-  
+
   // Public methods
-  const addAddress = (address: AddAddressParams) => {
-    const newAddress = {
-      id: Date.now(),
-      type: address.type,
-      address: address.address,
-      isDefault: address.isDefault || false
-    };
-    
-    addAddressLocal(newAddress);
-    
-    toast({
-      title: 'Address Added',
-      description: 'Your address has been added successfully',
-      variant: 'success'
-    });
-    
-    // addAddressMutation.mutate(address);
+  const addAddress = async (address: AddAddressParams) => {
+    try {
+      const response = await apiRequest('POST', '/api/addresses', {
+        userId: 1, // In a real app this would come from auth
+        type: address.type,
+        address: address.address,
+        city: "New York", // These could be added to the form
+        state: "NY",
+        zipCode: "10001",
+        isDefault: address.isDefault || false
+      });
+
+      const newAddress = await response.json();
+      addAddressLocal(newAddress);
+
+      toast({
+        title: 'Address Added',
+        description: 'Your address has been added successfully',
+        variant: 'success'
+      });
+    } catch (error) {
+      toast({
+        title: 'Error Adding Address',
+        description: error.message || 'Failed to add address',
+        variant: 'destructive'
+      });
+    }
   };
-  
+
   const updateAddress = (id: number, data: Partial<AddAddressParams>) => {
     updateAddressLocal(id, data);
-    
+
     toast({
       title: 'Address Updated',
       description: 'Your address has been updated successfully',
       variant: 'success'
     });
-    
+
     // updateAddressMutation.mutate({ id, data });
   };
-  
+
   const removeAddress = (id: number) => {
     removeAddressLocal(id);
-    
+
     toast({
       title: 'Address Removed',
       description: 'Your address has been removed successfully',
       variant: 'success'
     });
-    
+
     // removeAddressMutation.mutate(id);
   };
-  
+
   return {
     selectedAddress,
     savedAddresses,
