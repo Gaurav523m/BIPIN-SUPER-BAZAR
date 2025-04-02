@@ -3,7 +3,21 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { z } from "zod";
-import { insertUserSchema, insertAddressSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertCategorySchema, insertProductSchema, insertOfferSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertAddressSchema, 
+  insertCartItemSchema, 
+  insertOrderSchema, 
+  insertOrderItemSchema, 
+  insertCategorySchema, 
+  insertProductSchema, 
+  insertOfferSchema,
+  insertInventorySchema,
+  insertStockTransactionSchema,
+  insertPricingTierSchema,
+  insertCustomerPricingSchema,
+  insertUserPricingTierSchema
+} from "@shared/schema";
 import { users } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -439,6 +453,314 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error creating offer:", error);
       return res.status(500).json({ message: "Error creating offer" });
+    }
+  });
+
+  // Inventory Management
+  app.get("/api/admin/inventory", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const inventory = await storage.getInventoryItems();
+      return res.status(200).json(inventory);
+    } catch (error) {
+      console.error("Error getting inventory:", error);
+      return res.status(500).json({ message: "Error getting inventory" });
+    }
+  });
+
+  app.get("/api/admin/inventory/product/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.id);
+      if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+      }
+      
+      const inventoryItem = await storage.getInventory(productId);
+      if (!inventoryItem) {
+        return res.status(404).json({ message: "Inventory not found for this product" });
+      }
+      
+      return res.status(200).json(inventoryItem);
+    } catch (error) {
+      console.error("Error getting product inventory:", error);
+      return res.status(500).json({ message: "Error getting product inventory" });
+    }
+  });
+
+  app.post("/api/admin/inventory", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const inventoryData = insertInventorySchema.parse(req.body);
+      const newInventory = await storage.createInventory(inventoryData);
+      return res.status(201).json(newInventory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid inventory data", errors: error.errors });
+      }
+      console.error("Error creating inventory:", error);
+      return res.status(500).json({ message: "Error creating inventory", error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/inventory/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid inventory ID" });
+      }
+      
+      const updateData = req.body;
+      const updatedInventory = await storage.updateInventory(id, updateData);
+      
+      if (!updatedInventory) {
+        return res.status(404).json({ message: "Inventory not found" });
+      }
+      
+      return res.status(200).json(updatedInventory);
+    } catch (error) {
+      console.error("Error updating inventory:", error);
+      return res.status(500).json({ message: "Error updating inventory" });
+    }
+  });
+
+  app.patch("/api/admin/inventory/stock/:productId", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const { quantity } = req.body;
+      
+      if (isNaN(productId) || typeof quantity !== 'number') {
+        return res.status(400).json({ message: "Invalid product ID or quantity" });
+      }
+      
+      const updatedInventory = await storage.updateStockQuantity(productId, quantity);
+      
+      if (!updatedInventory) {
+        return res.status(404).json({ message: "Inventory not found for this product" });
+      }
+      
+      return res.status(200).json(updatedInventory);
+    } catch (error) {
+      console.error("Error updating stock quantity:", error);
+      return res.status(500).json({ message: "Error updating stock quantity" });
+    }
+  });
+
+  // Stock Transactions
+  app.get("/api/admin/transactions", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const productId = req.query.productId ? parseInt(req.query.productId as string) : undefined;
+      const transactions = await storage.getStockTransactions(productId);
+      return res.status(200).json(transactions);
+    } catch (error) {
+      console.error("Error getting stock transactions:", error);
+      return res.status(500).json({ message: "Error getting stock transactions" });
+    }
+  });
+
+  app.post("/api/admin/transactions", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const transactionData = insertStockTransactionSchema.parse(req.body);
+      const newTransaction = await storage.createStockTransaction(transactionData);
+      
+      // Update inventory if it's a stock adjustment transaction
+      if (['received', 'adjusted', 'sold'].includes(transactionData.transactionType)) {
+        const quantityChange = transactionData.transactionType === 'sold' 
+          ? -Math.abs(transactionData.quantity) 
+          : (transactionData.transactionType === 'received' 
+              ? Math.abs(transactionData.quantity) 
+              : transactionData.quantity);
+        
+        await storage.updateStockQuantity(transactionData.productId, quantityChange);
+      }
+      
+      return res.status(201).json(newTransaction);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid transaction data", errors: error.errors });
+      }
+      console.error("Error creating stock transaction:", error);
+      return res.status(500).json({ message: "Error creating stock transaction" });
+    }
+  });
+
+  // Pricing Tiers
+  app.get("/api/admin/pricing-tiers", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const pricingTiers = await storage.getPricingTiers();
+      return res.status(200).json(pricingTiers);
+    } catch (error) {
+      console.error("Error getting pricing tiers:", error);
+      return res.status(500).json({ message: "Error getting pricing tiers" });
+    }
+  });
+
+  app.get("/api/admin/pricing-tiers/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid pricing tier ID" });
+      }
+      
+      const pricingTier = await storage.getPricingTier(id);
+      if (!pricingTier) {
+        return res.status(404).json({ message: "Pricing tier not found" });
+      }
+      
+      return res.status(200).json(pricingTier);
+    } catch (error) {
+      console.error("Error getting pricing tier:", error);
+      return res.status(500).json({ message: "Error getting pricing tier" });
+    }
+  });
+
+  app.post("/api/admin/pricing-tiers", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const tierData = insertPricingTierSchema.parse(req.body);
+      const newTier = await storage.createPricingTier(tierData);
+      return res.status(201).json(newTier);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid pricing tier data", errors: error.errors });
+      }
+      console.error("Error creating pricing tier:", error);
+      return res.status(500).json({ message: "Error creating pricing tier" });
+    }
+  });
+
+  app.patch("/api/admin/pricing-tiers/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid pricing tier ID" });
+      }
+      
+      const tierData = req.body;
+      const updatedTier = await storage.updatePricingTier(id, tierData);
+      
+      if (!updatedTier) {
+        return res.status(404).json({ message: "Pricing tier not found" });
+      }
+      
+      return res.status(200).json(updatedTier);
+    } catch (error) {
+      console.error("Error updating pricing tier:", error);
+      return res.status(500).json({ message: "Error updating pricing tier" });
+    }
+  });
+
+  // Customer Product Pricing
+  app.get("/api/admin/customer-pricing", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const productId = req.query.productId ? parseInt(req.query.productId as string) : undefined;
+      const tierId = req.query.tierId ? parseInt(req.query.tierId as string) : undefined;
+      
+      const customerPricings = await storage.getCustomerPricings(productId, tierId);
+      return res.status(200).json(customerPricings);
+    } catch (error) {
+      console.error("Error getting customer pricings:", error);
+      return res.status(500).json({ message: "Error getting customer pricings" });
+    }
+  });
+
+  app.post("/api/admin/customer-pricing", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const pricingData = insertCustomerPricingSchema.parse(req.body);
+      const newPricing = await storage.createCustomerPricing(pricingData);
+      return res.status(201).json(newPricing);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid customer pricing data", errors: error.errors });
+      }
+      console.error("Error creating customer pricing:", error);
+      return res.status(500).json({ message: "Error creating customer pricing", error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/customer-pricing/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid customer pricing ID" });
+      }
+      
+      const pricingData = req.body;
+      const updatedPricing = await storage.updateCustomerPricing(id, pricingData);
+      
+      if (!updatedPricing) {
+        return res.status(404).json({ message: "Customer pricing not found" });
+      }
+      
+      return res.status(200).json(updatedPricing);
+    } catch (error) {
+      console.error("Error updating customer pricing:", error);
+      return res.status(500).json({ message: "Error updating customer pricing" });
+    }
+  });
+
+  // User Pricing Tier Associations
+  app.get("/api/user-pricing-tiers/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const userPricingTiers = await storage.getUserPricingTiers(userId);
+      return res.status(200).json(userPricingTiers);
+    } catch (error) {
+      console.error("Error getting user pricing tiers:", error);
+      return res.status(500).json({ message: "Error getting user pricing tiers" });
+    }
+  });
+
+  app.post("/api/admin/user-pricing-tiers", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const userTierData = insertUserPricingTierSchema.parse(req.body);
+      const newUserTier = await storage.createUserPricingTier(userTierData);
+      return res.status(201).json(newUserTier);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user pricing tier data", errors: error.errors });
+      }
+      console.error("Error creating user pricing tier:", error);
+      return res.status(500).json({ message: "Error creating user pricing tier" });
+    }
+  });
+
+  app.patch("/api/admin/user-pricing-tiers/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user pricing tier ID" });
+      }
+      
+      const userTierData = req.body;
+      const updatedUserTier = await storage.updateUserPricingTier(id, userTierData);
+      
+      if (!updatedUserTier) {
+        return res.status(404).json({ message: "User pricing tier not found" });
+      }
+      
+      return res.status(200).json(updatedUserTier);
+    } catch (error) {
+      console.error("Error updating user pricing tier:", error);
+      return res.status(500).json({ message: "Error updating user pricing tier" });
+    }
+  });
+
+  // Get customer-specific product price
+  app.get("/api/product-price/:productId/user/:userId", async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(productId) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid product ID or user ID" });
+      }
+      
+      const price = await storage.getCustomerProductPrice(userId, productId);
+      return res.status(200).json({ price });
+    } catch (error) {
+      console.error("Error getting customer product price:", error);
+      return res.status(500).json({ message: "Error getting customer product price" });
     }
   });
 

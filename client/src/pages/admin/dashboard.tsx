@@ -3,11 +3,14 @@ import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LucideBox, LucideShoppingBag, LucideTag, LucideUsers, LucidePercent, LucidePackage, LucideLayoutGrid } from 'lucide-react';
 
 import { useAdminStore } from '@/store/admin-store';
 import { useToast } from '@/hooks/use-toast';
 import ProductManagement from '@/components/admin/ProductManagement';
 import CategoryManagement from '@/components/admin/CategoryManagement';
+import InventoryManagement from '@/components/admin/InventoryManagement';
+import PricingManagement from '@/components/admin/PricingManagement';
 import { apiRequest } from '@/lib/queryClient';
 
 export default function AdminDashboard() {
@@ -118,11 +121,31 @@ export default function AdminDashboard() {
       
       {/* Management interface tabs */}
       <Tabs defaultValue="products" className="w-full">
-        <TabsList className="grid grid-cols-4 mb-8">
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="offers">Offers</TabsTrigger>
+        <TabsList className="grid grid-cols-6 mb-8">
+          <TabsTrigger value="products">
+            <LucideShoppingBag className="w-4 h-4 mr-2" />
+            Products
+          </TabsTrigger>
+          <TabsTrigger value="categories">
+            <LucideLayoutGrid className="w-4 h-4 mr-2" />
+            Categories
+          </TabsTrigger>
+          <TabsTrigger value="inventory">
+            <LucidePackage className="w-4 h-4 mr-2" />
+            Inventory
+          </TabsTrigger>
+          <TabsTrigger value="pricing">
+            <LucidePercent className="w-4 h-4 mr-2" />
+            Pricing
+          </TabsTrigger>
+          <TabsTrigger value="orders">
+            <LucideBox className="w-4 h-4 mr-2" />
+            Orders
+          </TabsTrigger>
+          <TabsTrigger value="offers">
+            <LucideTag className="w-4 h-4 mr-2" />
+            Offers
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="products">
@@ -131,6 +154,14 @@ export default function AdminDashboard() {
         
         <TabsContent value="categories">
           <CategoryManagement />
+        </TabsContent>
+        
+        <TabsContent value="inventory">
+          <InventoryManagement />
+        </TabsContent>
+        
+        <TabsContent value="pricing">
+          <PricingManagement />
         </TabsContent>
         
         <TabsContent value="orders">

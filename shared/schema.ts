@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, doublePrecision, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // User schema
 export const users = pgTable("users", {
@@ -67,11 +68,14 @@ export const products = pgTable("products", {
   image: text("image"),
   price: doublePrecision("price").notNull(),
   discountPrice: doublePrecision("discount_price"),
-  quantity: text("quantity").notNull(), // e.g., "500g", "1kg", "6pcs"
+  quantity: text("quantity").notNull(), // e.g., "500g", "1kg", "6pcs" - display quantity (packaging)
   categoryId: integer("category_id").notNull().references(() => categories.id),
   isOrganic: boolean("is_organic").default(false),
   inStock: boolean("in_stock").default(true),
   nutritionInfo: json("nutrition_info"),
+  sku: text("sku"), // Stock Keeping Unit - unique product identifier
+  barcode: text("barcode"), // UPC/EAN barcode
+  costPrice: doublePrecision("cost_price"), // Cost price for inventory valuation
 });
 
 export const insertProductSchema = createInsertSchema(products).pick({
@@ -85,6 +89,9 @@ export const insertProductSchema = createInsertSchema(products).pick({
   isOrganic: true,
   inStock: true,
   nutritionInfo: true,
+  sku: true,
+  barcode: true,
+  costPrice: true,
 });
 
 // Cart schema
@@ -162,6 +169,219 @@ export const insertOfferSchema = createInsertSchema(offers).pick({
   isActive: true,
 });
 
+// Inventory schema
+export const inventory = pgTable("inventory", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  stockQuantity: integer("stock_quantity").notNull().default(0),
+  minStockLevel: integer("min_stock_level").default(5), // Threshold for reordering
+  maxStockLevel: integer("max_stock_level"), // Maximum stock capacity
+  locationCode: text("location_code"), // Storage location identifier
+  lastStockUpdate: timestamp("last_stock_update").defaultNow(),
+  lastReceivedDate: timestamp("last_received_date"),
+  lastReceivedQuantity: integer("last_received_quantity"),
+});
+
+export const insertInventorySchema = createInsertSchema(inventory).pick({
+  productId: true,
+  stockQuantity: true,
+  minStockLevel: true,
+  maxStockLevel: true,
+  locationCode: true,
+  lastReceivedDate: true,
+  lastReceivedQuantity: true,
+});
+
+// Stock Transaction History schema
+export const stockTransactions = pgTable("stock_transactions", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  transactionType: text("transaction_type").notNull(), // "received", "sold", "adjusted", "damaged", "returned"
+  quantity: integer("quantity").notNull(),
+  transactionDate: timestamp("transaction_date").defaultNow(),
+  reference: text("reference"), // Could be order ID, adjustment ID, etc.
+  notes: text("notes"),
+  userId: integer("user_id").references(() => users.id), // Who performed the transaction
+});
+
+export const insertStockTransactionSchema = createInsertSchema(stockTransactions).pick({
+  productId: true,
+  transactionType: true,
+  quantity: true,
+  reference: true,
+  notes: true,
+  userId: true
+});
+
+// Customer Pricing Tiers schema
+export const pricingTiers = pgTable("pricing_tiers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(), // "Retail", "Wholesale", "Premium", etc.
+  discountPercentage: doublePrecision("discount_percentage"), // Overall tier discount
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+});
+
+export const insertPricingTierSchema = createInsertSchema(pricingTiers).pick({
+  name: true,
+  discountPercentage: true,
+  description: true,
+  isActive: true,
+});
+
+// Customer Pricing schema (for specific product pricing)
+export const customerPricing = pgTable("customer_pricing", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  pricingTierId: integer("pricing_tier_id").notNull().references(() => pricingTiers.id),
+  price: doublePrecision("price").notNull(), // Specific price for this product in this tier
+  isActive: boolean("is_active").default(true),
+});
+
+export const insertCustomerPricingSchema = createInsertSchema(customerPricing).pick({
+  productId: true,
+  pricingTierId: true,
+  price: true,
+  isActive: true,
+});
+
+// User Pricing Tier Association
+export const userPricingTiers = pgTable("user_pricing_tiers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  pricingTierId: integer("pricing_tier_id").notNull().references(() => pricingTiers.id),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"), // null for no expiration
+  isActive: boolean("is_active").default(true),
+});
+
+export const insertUserPricingTierSchema = createInsertSchema(userPricingTiers).pick({
+  userId: true,
+  pricingTierId: true,
+  startDate: true,
+  endDate: true,
+  isActive: true,
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  addresses: many(addresses),
+  orders: many(orders),
+  cartItems: many(cartItems),
+  stockTransactions: many(stockTransactions),
+  userPricingTiers: many(userPricingTiers),
+}));
+
+export const addressesRelations = relations(addresses, ({ one }) => ({
+  user: one(users, {
+    fields: [addresses.userId],
+    references: [users.id],
+  }),
+}));
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  products: many(products),
+  offers: many(offers),
+}));
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  category: one(categories, {
+    fields: [products.categoryId],
+    references: [categories.id],
+  }),
+  cartItems: many(cartItems),
+  orderItems: many(orderItems),
+  inventory: many(inventory),
+  stockTransactions: many(stockTransactions),
+  customerPricing: many(customerPricing),
+}));
+
+export const cartItemsRelations = relations(cartItems, ({ one }) => ({
+  user: one(users, {
+    fields: [cartItems.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [cartItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, {
+    fields: [orders.userId],
+    references: [users.id],
+  }),
+  address: one(addresses, {
+    fields: [orders.addressId],
+    references: [addresses.id],
+  }),
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export const offersRelations = relations(offers, ({ one }) => ({
+  category: one(categories, {
+    fields: [offers.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export const inventoryRelations = relations(inventory, ({ one }) => ({
+  product: one(products, {
+    fields: [inventory.productId],
+    references: [products.id],
+  }),
+}));
+
+export const stockTransactionsRelations = relations(stockTransactions, ({ one }) => ({
+  product: one(products, {
+    fields: [stockTransactions.productId],
+    references: [products.id],
+  }),
+  user: one(users, {
+    fields: [stockTransactions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const pricingTiersRelations = relations(pricingTiers, ({ many }) => ({
+  customerPricing: many(customerPricing),
+  userPricingTiers: many(userPricingTiers),
+}));
+
+export const customerPricingRelations = relations(customerPricing, ({ one }) => ({
+  product: one(products, {
+    fields: [customerPricing.productId],
+    references: [products.id],
+  }),
+  pricingTier: one(pricingTiers, {
+    fields: [customerPricing.pricingTierId],
+    references: [pricingTiers.id],
+  }),
+}));
+
+export const userPricingTiersRelations = relations(userPricingTiers, ({ one }) => ({
+  user: one(users, {
+    fields: [userPricingTiers.userId],
+    references: [users.id],
+  }),
+  pricingTier: one(pricingTiers, {
+    fields: [userPricingTiers.pricingTierId],
+    references: [pricingTiers.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -186,3 +406,18 @@ export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 
 export type Offer = typeof offers.$inferSelect;
 export type InsertOffer = z.infer<typeof insertOfferSchema>;
+
+export type Inventory = typeof inventory.$inferSelect;
+export type InsertInventory = z.infer<typeof insertInventorySchema>;
+
+export type StockTransaction = typeof stockTransactions.$inferSelect;
+export type InsertStockTransaction = z.infer<typeof insertStockTransactionSchema>;
+
+export type PricingTier = typeof pricingTiers.$inferSelect;
+export type InsertPricingTier = z.infer<typeof insertPricingTierSchema>;
+
+export type CustomerPricing = typeof customerPricing.$inferSelect;
+export type InsertCustomerPricing = z.infer<typeof insertCustomerPricingSchema>;
+
+export type UserPricingTier = typeof userPricingTiers.$inferSelect;
+export type InsertUserPricingTier = z.infer<typeof insertUserPricingTierSchema>;

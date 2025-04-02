@@ -6,7 +6,12 @@ import {
   type CartItem, type InsertCartItem,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
-  type Offer, type InsertOffer
+  type Offer, type InsertOffer,
+  type Inventory, type InsertInventory,
+  type StockTransaction, type InsertStockTransaction,
+  type PricingTier, type InsertPricingTier,
+  type CustomerPricing, type InsertCustomerPricing,
+  type UserPricingTier, type InsertUserPricingTier
 } from "@shared/schema";
 
 export interface IStorage {
@@ -54,6 +59,35 @@ export interface IStorage {
   getOffers(): Promise<Offer[]>;
   getOffer(id: number): Promise<Offer | undefined>;
   createOffer(offer: InsertOffer): Promise<Offer>;
+  
+  // Inventory Management
+  getInventory(productId: number): Promise<Inventory | undefined>;
+  getInventoryItems(): Promise<(Inventory & { product: Product })[]>;
+  createInventory(inventory: InsertInventory): Promise<Inventory>;
+  updateInventory(id: number, inventory: Partial<InsertInventory>): Promise<Inventory | undefined>;
+  updateStockQuantity(productId: number, quantity: number): Promise<Inventory | undefined>;
+  
+  // Stock Transactions
+  getStockTransactions(productId?: number): Promise<(StockTransaction & { product: Product })[]>;
+  createStockTransaction(transaction: InsertStockTransaction): Promise<StockTransaction>;
+  
+  // Customer Pricing Tiers
+  getPricingTiers(): Promise<PricingTier[]>;
+  getPricingTier(id: number): Promise<PricingTier | undefined>;
+  createPricingTier(tier: InsertPricingTier): Promise<PricingTier>;
+  updatePricingTier(id: number, tier: Partial<InsertPricingTier>): Promise<PricingTier | undefined>;
+  
+  // Customer Product Pricing
+  getCustomerPricings(productId?: number, tierId?: number): Promise<(CustomerPricing & { product: Product, pricingTier: PricingTier })[]>;
+  getCustomerPricing(id: number): Promise<(CustomerPricing & { product: Product, pricingTier: PricingTier }) | undefined>;
+  createCustomerPricing(pricing: InsertCustomerPricing): Promise<CustomerPricing>;
+  updateCustomerPricing(id: number, pricing: Partial<InsertCustomerPricing>): Promise<CustomerPricing | undefined>;
+  
+  // User Pricing Tier Associations
+  getUserPricingTiers(userId: number): Promise<(UserPricingTier & { pricingTier: PricingTier })[]>;
+  createUserPricingTier(userTier: InsertUserPricingTier): Promise<UserPricingTier>;
+  updateUserPricingTier(id: number, userTier: Partial<InsertUserPricingTier>): Promise<UserPricingTier | undefined>;
+  getCustomerProductPrice(userId: number, productId: number): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -65,6 +99,11 @@ export class MemStorage implements IStorage {
   private orders: Map<number, Order> = new Map();
   private orderItems: Map<number, OrderItem> = new Map();
   private offers: Map<number, Offer> = new Map();
+  private inventory: Map<number, Inventory> = new Map();
+  private stockTransactions: Map<number, StockTransaction> = new Map();
+  private pricingTiers: Map<number, PricingTier> = new Map();
+  private customerPricing: Map<number, CustomerPricing> = new Map();
+  private userPricingTiers: Map<number, UserPricingTier> = new Map();
   
   private userIdCounter = 1;
   private addressIdCounter = 1;
@@ -74,13 +113,18 @@ export class MemStorage implements IStorage {
   private orderIdCounter = 1;
   private orderItemIdCounter = 1;
   private offerIdCounter = 1;
+  private inventoryIdCounter = 1;
+  private stockTransactionIdCounter = 1;
+  private pricingTierIdCounter = 1;
+  private customerPricingIdCounter = 1;
+  private userPricingTierIdCounter = 1;
 
   constructor() {
     // Initialize with some demo data
     this.initializeDemoData();
   }
 
-  private initializeDemoData() {
+  private async initializeDemoData() {
     // Add categories
     const categories = [
       { name: "Fruits & Vegetables", icon: "bx-lemon", description: "Fresh fruits and vegetables" },
@@ -120,7 +164,10 @@ export class MemStorage implements IStorage {
             carbohydrates: "23g",
             protein: "1.1g",
             fat: "0.3g"
-          }
+          },
+          sku: "FRTS-BAN-ORG-01",
+          barcode: "8901234567890",
+          costPrice: 1.75
         },
         {
           name: "Fresh Strawberries",
@@ -137,7 +184,10 @@ export class MemStorage implements IStorage {
             carbohydrates: "7.7g",
             protein: "0.7g",
             fat: "0.3g"
-          }
+          },
+          sku: "FRTS-STR-250-01",
+          barcode: "8901234567891",
+          costPrice: 2.85
         },
         {
           name: "Organic Avocado",
@@ -154,7 +204,10 @@ export class MemStorage implements IStorage {
             carbohydrates: "8.5g",
             protein: "2g",
             fat: "14.7g"
-          }
+          },
+          sku: "FRTS-AVO-ORG-01",
+          barcode: "8901234567892",
+          costPrice: 2.50
         },
         {
           name: "Red Bell Peppers",
@@ -171,7 +224,10 @@ export class MemStorage implements IStorage {
             carbohydrates: "6g",
             protein: "1g",
             fat: "0.3g"
-          }
+          },
+          sku: "FRTS-PEP-RED-01",
+          barcode: "8901234567893",
+          costPrice: 1.95
         },
         {
           name: "Organic Broccoli",
@@ -188,13 +244,29 @@ export class MemStorage implements IStorage {
             carbohydrates: "7g",
             protein: "2.8g",
             fat: "0.4g"
-          }
+          },
+          sku: "FRTS-BRC-ORG-01",
+          barcode: "8901234567894",
+          costPrice: 1.65
         }
       ];
 
-      fruitProducts.forEach(prod => {
-        this.createProduct(prod as InsertProduct);
-      });
+      const createdProducts = [];
+      for (const prod of fruitProducts) {
+        const product = await this.createProduct(prod as InsertProduct);
+        createdProducts.push(product);
+      }
+
+      // Add inventory for the products
+      for (const product of createdProducts) {
+        await this.createInventory({
+          productId: product.id,
+          stockQuantity: Math.floor(Math.random() * 50) + 10, // Random stock between 10-60
+          minStockLevel: 5,
+          maxStockLevel: 100,
+          locationCode: `ZONE-A-${Math.floor(Math.random() * 20) + 1}`,
+        });
+      }
     }
 
     // Add offers
@@ -221,11 +293,95 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    offers.forEach(offer => {
+    for (const offer of offers) {
       if (offer.categoryId) {
-        this.createOffer(offer as InsertOffer);
+        await this.createOffer(offer as InsertOffer);
       }
+    }
+
+    // Add pricing tiers
+    const pricingTierData = [
+      {
+        name: "Retail",
+        description: "Standard retail pricing",
+        discountPercentage: null,
+        isActive: true
+      },
+      {
+        name: "Wholesale",
+        description: "Pricing for wholesale customers",
+        discountPercentage: 15,
+        isActive: true
+      },
+      {
+        name: "Premium",
+        description: "Premium customer pricing",
+        discountPercentage: 5,
+        isActive: true
+      },
+      {
+        name: "Employee",
+        description: "Staff discount pricing",
+        discountPercentage: 20,
+        isActive: true
+      }
+    ];
+
+    const createdTiers = [];
+    for (const tier of pricingTierData) {
+      const pricingTier = await this.createPricingTier(tier);
+      createdTiers.push(pricingTier);
+    }
+
+    // Add some specific product pricings for the wholesale tier
+    const products = Array.from(this.products.values());
+    const wholesaleTier = createdTiers.find(tier => tier.name === "Wholesale");
+    
+    if (wholesaleTier && products.length > 0) {
+      for (let i = 0; i < 3 && i < products.length; i++) {
+        const product = products[i];
+        // Apply a steeper 25% discount for specific wholesale pricing
+        const specificPrice = product.price * 0.75;
+        
+        await this.createCustomerPricing({
+          productId: product.id,
+          pricingTierId: wholesaleTier.id,
+          price: specificPrice,
+          isActive: true
+        });
+      }
+    }
+
+    // Add admin user
+    const admin = await this.createUser({
+      username: "admin",
+      password: "admin123", // In a real app, this would be hashed
+      name: "Admin User",
+      email: "admin@groceryapp.com",
+      role: "admin",
+      phone: null
     });
+
+    // Add a demo wholesale customer
+    const wholesaleCustomer = await this.createUser({
+      username: "wholesale",
+      password: "password", // In a real app, this would be hashed
+      name: "Wholesale Customer",
+      email: "wholesale@example.com",
+      role: "customer",
+      phone: "555-1234"
+    });
+
+    // Assign wholesale customer to the wholesale pricing tier
+    if (wholesaleTier && wholesaleCustomer) {
+      await this.createUserPricingTier({
+        userId: wholesaleCustomer.id,
+        pricingTierId: wholesaleTier.id,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        isActive: true
+      });
+    }
   }
 
   // User methods
@@ -470,6 +626,309 @@ export class MemStorage implements IStorage {
     const offer: Offer = { ...insertOffer, id };
     this.offers.set(id, offer);
     return offer;
+  }
+
+  // Inventory Management methods
+  async getInventory(productId: number): Promise<Inventory | undefined> {
+    return Array.from(this.inventory.values()).find(
+      (inv) => inv.productId === productId
+    );
+  }
+
+  async getInventoryItems(): Promise<(Inventory & { product: Product })[]> {
+    const items = Array.from(this.inventory.values());
+    return items.map(item => {
+      const product = this.products.get(item.productId);
+      if (!product) throw new Error(`Product with id ${item.productId} not found`);
+      return { ...item, product };
+    });
+  }
+
+  async createInventory(insertInventory: InsertInventory): Promise<Inventory> {
+    // Check if inventory for this product already exists
+    const existingInventory = await this.getInventory(insertInventory.productId);
+    if (existingInventory) {
+      throw new Error(`Inventory for product ID ${insertInventory.productId} already exists`);
+    }
+
+    const id = this.inventoryIdCounter++;
+    const lastStockUpdate = new Date();
+    const inventory: Inventory = {
+      ...insertInventory,
+      id,
+      lastStockUpdate,
+      lastReceivedDate: insertInventory.lastReceivedDate || null,
+      lastReceivedQuantity: insertInventory.lastReceivedQuantity || null,
+      maxStockLevel: insertInventory.maxStockLevel || null,
+      locationCode: insertInventory.locationCode || null,
+      minStockLevel: insertInventory.minStockLevel || 5,
+      stockQuantity: insertInventory.stockQuantity || 0
+    };
+
+    this.inventory.set(id, inventory);
+
+    // Create a stock transaction record if initial stock is greater than 0
+    if (inventory.stockQuantity > 0) {
+      await this.createStockTransaction({
+        productId: inventory.productId,
+        transactionType: "received",
+        quantity: inventory.stockQuantity,
+        notes: "Initial inventory setup",
+        reference: null,
+        userId: null
+      });
+    }
+
+    return inventory;
+  }
+
+  async updateInventory(id: number, inventoryUpdate: Partial<InsertInventory>): Promise<Inventory | undefined> {
+    const inventory = this.inventory.get(id);
+    if (!inventory) return undefined;
+
+    const updatedInventory: Inventory = {
+      ...inventory,
+      ...inventoryUpdate,
+      lastStockUpdate: new Date()
+    };
+
+    this.inventory.set(id, updatedInventory);
+    return updatedInventory;
+  }
+
+  async updateStockQuantity(productId: number, quantity: number): Promise<Inventory | undefined> {
+    // Find inventory by productId
+    const inventoryItem = await this.getInventory(productId);
+    if (!inventoryItem) return undefined;
+
+    // Calculate new stock level
+    const newQuantity = inventoryItem.stockQuantity + quantity;
+    
+    // Update inventory
+    const updatedInventory = await this.updateInventory(inventoryItem.id, {
+      stockQuantity: newQuantity >= 0 ? newQuantity : 0
+    });
+
+    // Update product inStock status
+    const product = await this.getProduct(productId);
+    if (product && product.inStock !== (newQuantity > 0)) {
+      const updatedProduct = { ...product, inStock: newQuantity > 0 };
+      this.products.set(productId, updatedProduct);
+    }
+
+    // Create transaction record
+    const transactionType = quantity > 0 ? "received" : "adjusted";
+    await this.createStockTransaction({
+      productId,
+      transactionType,
+      quantity: Math.abs(quantity),
+      notes: quantity > 0 ? "Stock received" : "Stock adjusted",
+      reference: null,
+      userId: null
+    });
+
+    return updatedInventory;
+  }
+
+  // Stock Transaction methods
+  async getStockTransactions(productId?: number): Promise<(StockTransaction & { product: Product })[]> {
+    let transactions = Array.from(this.stockTransactions.values());
+    
+    if (productId) {
+      transactions = transactions.filter(tx => tx.productId === productId);
+    }
+
+    return transactions.map(tx => {
+      const product = this.products.get(tx.productId);
+      if (!product) throw new Error(`Product with id ${tx.productId} not found`);
+      return { ...tx, product };
+    }).sort((a, b) => b.transactionDate.getTime() - a.transactionDate.getTime());
+  }
+
+  async createStockTransaction(insertTransaction: InsertStockTransaction): Promise<StockTransaction> {
+    const id = this.stockTransactionIdCounter++;
+    const transactionDate = new Date();
+    const transaction: StockTransaction = {
+      ...insertTransaction,
+      id,
+      transactionDate,
+      reference: insertTransaction.reference || null,
+      notes: insertTransaction.notes || null,
+      userId: insertTransaction.userId || null
+    };
+
+    this.stockTransactions.set(id, transaction);
+    return transaction;
+  }
+
+  // Pricing Tier methods
+  async getPricingTiers(): Promise<PricingTier[]> {
+    return Array.from(this.pricingTiers.values());
+  }
+
+  async getPricingTier(id: number): Promise<PricingTier | undefined> {
+    return this.pricingTiers.get(id);
+  }
+
+  async createPricingTier(insertTier: InsertPricingTier): Promise<PricingTier> {
+    const id = this.pricingTierIdCounter++;
+    const tier: PricingTier = {
+      ...insertTier,
+      id,
+      discountPercentage: insertTier.discountPercentage || null,
+      description: insertTier.description || null,
+      isActive: insertTier.isActive !== false
+    };
+
+    this.pricingTiers.set(id, tier);
+    return tier;
+  }
+
+  async updatePricingTier(id: number, tierUpdate: Partial<InsertPricingTier>): Promise<PricingTier | undefined> {
+    const tier = this.pricingTiers.get(id);
+    if (!tier) return undefined;
+
+    const updatedTier: PricingTier = { ...tier, ...tierUpdate };
+    this.pricingTiers.set(id, updatedTier);
+    return updatedTier;
+  }
+
+  // Customer Product Pricing methods
+  async getCustomerPricings(productId?: number, tierId?: number): Promise<(CustomerPricing & { product: Product, pricingTier: PricingTier })[]> {
+    let pricings = Array.from(this.customerPricing.values());
+    
+    if (productId) {
+      pricings = pricings.filter(p => p.productId === productId);
+    }
+
+    if (tierId) {
+      pricings = pricings.filter(p => p.pricingTierId === tierId);
+    }
+
+    return pricings.map(pricing => {
+      const product = this.products.get(pricing.productId);
+      const pricingTier = this.pricingTiers.get(pricing.pricingTierId);
+      
+      if (!product) throw new Error(`Product with id ${pricing.productId} not found`);
+      if (!pricingTier) throw new Error(`Pricing tier with id ${pricing.pricingTierId} not found`);
+      
+      return { ...pricing, product, pricingTier };
+    });
+  }
+
+  async getCustomerPricing(id: number): Promise<(CustomerPricing & { product: Product, pricingTier: PricingTier }) | undefined> {
+    const pricing = this.customerPricing.get(id);
+    if (!pricing) return undefined;
+
+    const product = this.products.get(pricing.productId);
+    const pricingTier = this.pricingTiers.get(pricing.pricingTierId);
+    
+    if (!product) throw new Error(`Product with id ${pricing.productId} not found`);
+    if (!pricingTier) throw new Error(`Pricing tier with id ${pricing.pricingTierId} not found`);
+    
+    return { ...pricing, product, pricingTier };
+  }
+
+  async createCustomerPricing(insertPricing: InsertCustomerPricing): Promise<CustomerPricing> {
+    // Check if a pricing for this product and tier already exists
+    const existingPricing = Array.from(this.customerPricing.values()).find(
+      p => p.productId === insertPricing.productId && p.pricingTierId === insertPricing.pricingTierId
+    );
+
+    if (existingPricing) {
+      throw new Error(`Pricing for product ID ${insertPricing.productId} and tier ID ${insertPricing.pricingTierId} already exists`);
+    }
+
+    const id = this.customerPricingIdCounter++;
+    const pricing: CustomerPricing = {
+      ...insertPricing,
+      id,
+      isActive: insertPricing.isActive !== false
+    };
+
+    this.customerPricing.set(id, pricing);
+    return pricing;
+  }
+
+  async updateCustomerPricing(id: number, pricingUpdate: Partial<InsertCustomerPricing>): Promise<CustomerPricing | undefined> {
+    const pricing = this.customerPricing.get(id);
+    if (!pricing) return undefined;
+
+    const updatedPricing: CustomerPricing = { ...pricing, ...pricingUpdate };
+    this.customerPricing.set(id, updatedPricing);
+    return updatedPricing;
+  }
+
+  // User Pricing Tier methods
+  async getUserPricingTiers(userId: number): Promise<(UserPricingTier & { pricingTier: PricingTier })[]> {
+    const userTiers = Array.from(this.userPricingTiers.values()).filter(
+      ut => ut.userId === userId && ut.isActive && (!ut.endDate || ut.endDate >= new Date())
+    );
+
+    return userTiers.map(userTier => {
+      const pricingTier = this.pricingTiers.get(userTier.pricingTierId);
+      if (!pricingTier) throw new Error(`Pricing tier with id ${userTier.pricingTierId} not found`);
+      return { ...userTier, pricingTier };
+    });
+  }
+
+  async createUserPricingTier(insertUserTier: InsertUserPricingTier): Promise<UserPricingTier> {
+    const id = this.userPricingTierIdCounter++;
+    const userTier: UserPricingTier = {
+      ...insertUserTier,
+      id,
+      startDate: insertUserTier.startDate || new Date(),
+      endDate: insertUserTier.endDate || null,
+      isActive: insertUserTier.isActive !== false
+    };
+
+    this.userPricingTiers.set(id, userTier);
+    return userTier;
+  }
+
+  async updateUserPricingTier(id: number, userTierUpdate: Partial<InsertUserPricingTier>): Promise<UserPricingTier | undefined> {
+    const userTier = this.userPricingTiers.get(id);
+    if (!userTier) return undefined;
+
+    const updatedUserTier: UserPricingTier = { ...userTier, ...userTierUpdate };
+    this.userPricingTiers.set(id, updatedUserTier);
+    return updatedUserTier;
+  }
+
+  async getCustomerProductPrice(userId: number, productId: number): Promise<number> {
+    // Get the product's regular price
+    const product = await this.getProduct(productId);
+    if (!product) throw new Error(`Product with id ${productId} not found`);
+    
+    const regularPrice = product.discountPrice || product.price;
+    
+    // Check if user has any active pricing tiers
+    const userTiers = await this.getUserPricingTiers(userId);
+    if (userTiers.length === 0) return regularPrice;
+    
+    // Find specific product pricing for the user's tiers
+    let bestPrice = regularPrice;
+    
+    for (const userTier of userTiers) {
+      // Check for specific product pricing in this tier
+      const productPricings = await this.getCustomerPricings(productId, userTier.pricingTierId);
+      
+      if (productPricings.length > 0) {
+        // Use the specific product pricing
+        const pricing = productPricings[0];
+        if (pricing.isActive && pricing.price < bestPrice) {
+          bestPrice = pricing.price;
+        }
+      } else if (userTier.pricingTier.discountPercentage) {
+        // Apply tier discount percentage
+        const discountedPrice = regularPrice * (1 - userTier.pricingTier.discountPercentage / 100);
+        if (discountedPrice < bestPrice) {
+          bestPrice = discountedPrice;
+        }
+      }
+    }
+    
+    return bestPrice;
   }
 }
 
