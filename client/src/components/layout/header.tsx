@@ -98,29 +98,6 @@ const Header: React.FC = () => {
             onSearch={handleSearch}
           />
         </div>
-        
-        {/* Category Navigation */}
-        <nav className="bg-white border-t overflow-x-auto whitespace-nowrap px-3 py-2 scrollbar-hide">
-          <div className="flex gap-6">
-            {isLoading ? (
-              // Skeleton loading state
-              Array(5).fill(0).map((_, index) => (
-                <div key={index} className="h-6 w-24 animate-pulse bg-gray-200 rounded"></div>
-              ))
-            ) : (
-              categories?.map((category) => (
-                <Link 
-                  key={category.id}
-                  to={`/category/${category.id}`}
-                  className="flex flex-col items-center gap-1 min-w-fit pb-1 border-b-2 border-transparent hover:border-primary"
-                  onClick={() => console.log(`Category clicked: ${category.name}, ID: ${category.id}`)}
-                >
-                  <span className="text-sm font-medium">{category.name}</span>
-                </Link>
-              ))
-            )}
-          </div>
-        </nav>
       </div>
 
       {/* Cart Sidebar */}
