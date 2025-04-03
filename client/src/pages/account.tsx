@@ -5,34 +5,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import LocationModal from "@/components/location/location-modal";
 import useAddress from "@/hooks/use-address";
 
-// Mock user data - in a real app this would come from auth context
-const user = {
-  id: 1,
-  name: "John Doe",
-  email: "john.doe@example.com",
-  phone: "+1 (234) 567-890"
-};
+// Get the user from auth context
 
 const AccountPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const { savedAddresses } = useAddress();
   const { toast } = useToast();
+  const { user, logout } = useAuth();
 
-  // Fetch orders - this would use the real user ID in a complete implementation
+  // Fetch orders using the authenticated user's ID
   const { data: orders, isLoading: isLoadingOrders } = useQuery({
-    queryKey: ["/api/orders", { userId: 1 }],
+    queryKey: ["/api/orders", { userId: user?.id || 0 }],
+    // Don't attempt to fetch if there's no authenticated user
+    enabled: !!user,
   });
-
-  const handleLogout = () => {
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out",
-    });
-    // In a real app, this would call a logout function from auth context
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+      });
+    }
   };
 
   return (
@@ -64,25 +71,31 @@ const AccountPage: React.FC = () => {
               <CardTitle>Personal Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Full Name</h3>
-                  <p className="text-lg">{user.name}</p>
+              {user ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Full Name</h3>
+                    <p className="text-lg">{user?.name || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Email Address</h3>
+                    <p className="text-lg">{user?.email || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Phone Number</h3>
+                    <p className="text-lg">{user?.phone || 'Not set'}</p>
+                  </div>
+                  <div className="pt-4">
+                    <Button variant="outline">
+                      <i className='bx bx-edit mr-2'></i> Edit Profile
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Email Address</h3>
-                  <p className="text-lg">{user.email}</p>
+              ) : (
+                <div className="flex justify-center py-6">
+                  <Skeleton className="h-32 w-full" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Phone Number</h3>
-                  <p className="text-lg">{user.phone}</p>
-                </div>
-                <div className="pt-4">
-                  <Button variant="outline">
-                    <i className='bx bx-edit mr-2'></i> Edit Profile
-                  </Button>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -109,7 +122,7 @@ const AccountPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              ) : orders && orders.length > 0 ? (
+              ) : orders && Array.isArray(orders) && orders.length > 0 ? (
                 <div className="space-y-4">
                   {orders.map((order: any) => (
                     <div key={order.id} className="border rounded-lg p-4 hover:border-primary">
