@@ -204,19 +204,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Don't return password
           const { password: _, ...newUserWithoutPassword } = newUser;
           
-          return res.json({ 
-            user: newUserWithoutPassword, 
-            isNewUser: true,
-            message: "New account created with phone authentication. Please complete your profile."
+          // Establish session for the new user
+          req.login(newUser, (err) => {
+            if (err) {
+              console.error("Session login error for new user:", err);
+              return res.status(500).json({ message: "Failed to establish session" });
+            }
+            
+            console.log("New user session established");
+            return res.json({ 
+              user: newUserWithoutPassword, 
+              isNewUser: true,
+              message: "New account created with phone authentication. Please complete your profile."
+            });
           });
         } else {
           // User exists with this phone
           const { password: _, ...userWithoutPassword } = user;
           
-          return res.json({ 
-            user: userWithoutPassword,
-            isNewUser: false,
-            profileComplete: user.isProfileComplete
+          // Establish session for existing user
+          req.login(user, (err) => {
+            if (err) {
+              console.error("Session login error for existing user:", err);
+              return res.status(500).json({ message: "Failed to establish session" });
+            }
+            
+            console.log("Existing user session established");
+            return res.json({ 
+              user: userWithoutPassword,
+              isNewUser: false,
+              profileComplete: user.isProfileComplete
+            });
           });
         }
       } else {
@@ -233,10 +251,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't return password
         const { password: _, ...userWithoutPassword } = user;
         
-        res.json({ 
-          user: userWithoutPassword,
-          isNewUser: false,
-          profileComplete: user.isProfileComplete
+        // Establish session for the user
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Session login error:", err);
+            return res.status(500).json({ message: "Failed to establish session" });
+          }
+          
+          console.log("Username/password user session established");
+          res.json({ 
+            user: userWithoutPassword,
+            isNewUser: false,
+            profileComplete: user.isProfileComplete
+          });
         });
       }
     } catch (error) {
