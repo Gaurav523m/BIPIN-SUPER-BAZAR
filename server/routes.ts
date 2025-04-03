@@ -323,6 +323,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.patch("/api/addresses/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid address ID" });
+      }
+      
+      const addressData = req.body;
+      const updatedAddress = await storage.updateAddress(id, addressData);
+      
+      if (!updatedAddress) {
+        return res.status(404).json({ message: "Address not found" });
+      }
+      
+      return res.status(200).json(updatedAddress);
+    } catch (error) {
+      console.error("Error updating address:", error);
+      return res.status(500).json({ message: "Error updating address" });
+    }
+  });
+  
+  app.delete("/api/addresses/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid address ID" });
+      }
+      
+      const success = await storage.deleteAddress(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Address not found" });
+      }
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      return res.status(500).json({ message: "Error deleting address" });
+    }
+  });
+  
   // Cart
   app.get("/api/cart", async (req: Request, res: Response) => {
     try {

@@ -16,7 +16,8 @@ const AccountPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const { savedAddresses } = useAddress();
+  const [editingAddress, setEditingAddress] = useState<any>(null);
+  const { savedAddresses, removeAddress } = useAddress();
   const { toast } = useToast();
   const { user, logout } = useAuth();
 
@@ -204,10 +205,25 @@ const AccountPage: React.FC = () => {
                           )}
                         </div>
                         <div className="flex gap-2">
-                          <button className="text-gray-500 hover:text-primary">
+                          <button 
+                            className="text-gray-500 hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingAddress(address);
+                              setIsLocationModalOpen(true);
+                            }}
+                          >
                             <i className='bx bx-edit'></i>
                           </button>
-                          <button className="text-gray-500 hover:text-red-500">
+                          <button 
+                            className="text-gray-500 hover:text-red-500"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm("Are you sure you want to delete this address?")) {
+                                removeAddress(address.id);
+                              }
+                            }}
+                          >
                             <i className='bx bx-trash'></i>
                           </button>
                         </div>
@@ -234,7 +250,11 @@ const AccountPage: React.FC = () => {
 
       <LocationModal 
         isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
+        onClose={() => {
+          setIsLocationModalOpen(false);
+          setEditingAddress(null);
+        }}
+        editAddress={editingAddress}
       />
       
       {user && (
