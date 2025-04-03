@@ -24,10 +24,9 @@ import { Separator } from "@/components/ui/separator";
 const registerSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   email: z.string().email("Please enter a valid email address"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  phone: z.string().regex(/^\+91[0-9]{10}$/, "Phone number must be in format +91XXXXXXXXXX"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters"),
-  phone: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -45,18 +44,20 @@ const RegisterForm: React.FC = () => {
     defaultValues: {
       name: "",
       email: "",
-      username: "",
       password: "",
       confirmPassword: "",
-      phone: "",
+      phone: "+91",
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormValues) => {
       const { confirmPassword, ...userData } = data;
+      // Generate a username based on phone number since we no longer collect it
+      const username = `user_${Date.now()}`;
       const response = await apiRequest('POST', '/api/users', {
         ...userData,
+        username,
         role: "customer"
       });
       if (!response.ok) {
@@ -92,21 +93,6 @@ const RegisterForm: React.FC = () => {
     <div className="w-full max-w-md mx-auto rounded-lg border p-6 shadow-sm">
       <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
       
-      {/* Google Login Button */}
-      <div className="mb-4">
-        <GoogleLoginButton />
-      </div>
-      
-      {/* Separator */}
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <Separator className="w-full" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-2 text-xs text-gray-500">OR REGISTER WITH EMAIL</span>
-        </div>
-      </div>
-      
       {/* Registration Form */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -140,28 +126,17 @@ const RegisterForm: React.FC = () => {
           
           <FormField
             control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl>
-                  <Input placeholder="Choose a username" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number (Optional)</FormLabel>
+                <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter your phone number" {...field} />
+                  <Input placeholder="+91XXXXXXXXXX" {...field} />
                 </FormControl>
                 <FormMessage />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter your phone number with country code (+91)
+                </p>
               </FormItem>
             )}
           />

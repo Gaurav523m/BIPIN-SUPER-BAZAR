@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,17 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import GoogleLoginButton from "./google-login-button";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Username/password login schema
-const usernameLoginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-type UsernameLoginValues = z.infer<typeof usernameLoginSchema>;
 
 // Phone login schema
 const phoneLoginSchema = z.object({
@@ -43,16 +32,6 @@ const LoginForm: React.FC = () => {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const { login } = useAuth();
-  const [loginMode, setLoginMode] = useState<"username" | "phone">("username");
-
-  // Username/password form
-  const usernameForm = useForm<UsernameLoginValues>({
-    resolver: zodResolver(usernameLoginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
-  });
 
   // Phone form
   const phoneForm = useForm<PhoneLoginValues>({
@@ -62,9 +41,9 @@ const LoginForm: React.FC = () => {
     },
   });
 
-  // Common login mutation for both login methods
+  // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: PhoneLoginValues) => {
       const response = await apiRequest('POST', '/api/auth/login', data);
       if (!response.ok) {
         const errorData = await response.json();
@@ -102,12 +81,7 @@ const LoginForm: React.FC = () => {
     },
   });
 
-  // Submit handlers for different login methods
-  const onUsernameSubmit = (data: UsernameLoginValues) => {
-    loginMutation.mutate(data);
-  };
-
-  const onPhoneSubmit = (data: PhoneLoginValues) => {
+  const onSubmit = (data: PhoneLoginValues) => {
     loginMutation.mutate(data);
   };
 
@@ -115,110 +89,40 @@ const LoginForm: React.FC = () => {
     <div className="w-full max-w-md mx-auto rounded-lg border p-6 shadow-sm">
       <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
       
-      {/* Google Login Button */}
-      <div className="mb-4">
-        <GoogleLoginButton />
-      </div>
-      
-      {/* Separator */}
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <Separator className="w-full" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-2 text-xs text-gray-500">OR</span>
-        </div>
-      </div>
-      
-      {/* Login Tabs */}
-      <Tabs defaultValue="username" onValueChange={(value) => setLoginMode(value as "username" | "phone")}>
-        <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="username">Username</TabsTrigger>
-          <TabsTrigger value="phone">Phone</TabsTrigger>
-        </TabsList>
-        
-        {/* Username/Password Login Form */}
-        <TabsContent value="username">
-          <Form {...usernameForm}>
-            <form onSubmit={usernameForm.handleSubmit(onUsernameSubmit)} className="space-y-4">
-              <FormField
-                control={usernameForm.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your username" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={usernameForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Enter your password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="pt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary text-white"
-                  disabled={loginMutation.isPending}
-                >
-                  {loginMutation.isPending ? "Logging in..." : "Login"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </TabsContent>
-        
-        {/* Phone Login Form */}
-        <TabsContent value="phone">
-          <Form {...phoneForm}>
-            <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="space-y-4">
-              <FormField
-                control={phoneForm.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="+91XXXXXXXXXX" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Enter your phone number with country code (+91)
-                    </p>
-                  </FormItem>
-                )}
-              />
-              
-              <div className="pt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-primary text-white"
-                  disabled={loginMutation.isPending}
-                >
-                  {loginMutation.isPending ? "Verifying..." : "Login with Phone"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </TabsContent>
-      </Tabs>
+      {/* Phone Login Form */}
+      <Form {...phoneForm}>
+        <form onSubmit={phoneForm.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={phoneForm.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="+91XXXXXXXXXX" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter your phone number with country code (+91)
+                </p>
+              </FormItem>
+            )}
+          />
+          
+          <div className="pt-2">
+            <Button 
+              type="submit" 
+              className="w-full bg-primary text-white"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? "Verifying..." : "Login with Phone"}
+            </Button>
+          </div>
+        </form>
+      </Form>
       
       <div className="text-center mt-4">
         <p className="text-sm text-gray-600">
