@@ -14,10 +14,13 @@ import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import CompleteProfile from "@/pages/profile/complete";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import MobileNav from "@/components/layout/mobile-nav";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 function Router() {
   return (
@@ -50,6 +53,11 @@ function Router() {
           <Checkout />
         </ProtectedRoute>
       </Route>
+      <Route path="/profile/complete">
+        <ProtectedRoute>
+          <CompleteProfile />
+        </ProtectedRoute>
+      </Route>
       
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />
@@ -68,22 +76,34 @@ function Router() {
   );
 }
 
-function App() {
+function AppContent() {
   const [location] = useLocation();
   const isAdminRoute = location.startsWith('/admin');
+  const { checkSession } = useAuth();
+  
+  // Check for active session when the app first loads
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
   
   return (
+    <div className="flex flex-col min-h-screen">
+      {/* Only show header/footer/mobilenav on customer routes */}
+      {!isAdminRoute && <Header />}
+      <main className={`flex-grow ${!isAdminRoute ? 'container mx-auto px-3 py-4 lg:px-6 lg:py-6' : ''}`}>
+        <Router />
+      </main>
+      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && <MobileNav />}
+      <Toaster />
+    </div>
+  );
+}
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex flex-col min-h-screen">
-        {/* Only show header/footer/mobilenav on customer routes */}
-        {!isAdminRoute && <Header />}
-        <main className={`flex-grow ${!isAdminRoute ? 'container mx-auto px-3 py-4 lg:px-6 lg:py-6' : ''}`}>
-          <Router />
-        </main>
-        {!isAdminRoute && <Footer />}
-        {!isAdminRoute && <MobileNav />}
-        <Toaster />
-      </div>
+      <AppContent />
     </QueryClientProvider>
   );
 }

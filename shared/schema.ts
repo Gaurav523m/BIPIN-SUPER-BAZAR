@@ -9,10 +9,11 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  phone: text("phone"),
+  email: text("email").unique(),
+  phone: text("phone").unique(), // Phone can be used for authentication
   role: text("role").default("customer").notNull(), // 'customer' or 'admin'
   createdAt: timestamp("created_at").defaultNow(),
+  isProfileComplete: boolean("is_profile_complete").default(false), // Track if user completed profile
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -22,6 +23,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   phone: true,
   role: true,
+  isProfileComplete: true,
 });
 
 // Address schema

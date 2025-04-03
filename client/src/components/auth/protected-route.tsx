@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
@@ -15,23 +15,34 @@ interface ProtectedRouteProps {
  */
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading, checkSession } = useAuth();
+  const [isChecking, setIsChecking] = useState(true);
+  
+  // Check for active session on first render
+  useEffect(() => {
+    const verifySession = async () => {
+      await checkSession();
+      setIsChecking(false);
+    };
+    
+    verifySession();
+  }, [checkSession]);
   
   useEffect(() => {
-    // If not authenticated, redirect to login
-    if (!isAuthenticated) {
+    // Only redirect after we've checked the session
+    if (!isChecking && !isAuthenticated) {
       setLocation("/login");
       return;
     }
     
     // If admin-only route and user is not an admin, redirect to home
-    if (adminOnly && user?.role !== "admin") {
+    if (!isChecking && isAuthenticated && adminOnly && user?.role !== "admin") {
       setLocation("/");
     }
-  }, [isAuthenticated, user, adminOnly, setLocation]);
+  }, [isAuthenticated, user, adminOnly, setLocation, isChecking]);
   
   // Show loading indicator while checking auth status
-  if (!isAuthenticated) {
+  if (isChecking || isLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

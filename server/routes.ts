@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { z } from "zod";
+import passport from "passport";
 import { 
   insertUserSchema, 
   insertAddressSchema, 
@@ -19,6 +20,7 @@ import {
   insertUserPricingTierSchema
 } from "@shared/schema";
 import { users, orders, orderItems } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
@@ -130,23 +132,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Auth
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
+  // Update user profile
+  app.patch("/api/users/:id", async (req: Request, res: Response) => {
     try {
-      const { username, password } = req.body;
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid credentials" });
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get the fields to update
+      const { name, email, phone, isProfileComplete } = req.body;
+      
+      // Update in database
+      const updatedUser = await db.update(users)
+        .set({ 
+          name: name !== undefined ? name : user.name,
+          email: email !== undefined ? email : user.email,
+          phone: phone !== undefined ? phone : user.phone,
+          isProfileComplete: isProfileComplete !== undefined ? isProfileComplete : user.isProfileComplete
+        })
+        .where(eq(users.id, userId))
+        .returning()
+        .execute();
+      
+      if (!updatedUser || updatedUser.length === 0) {
+        return res.status(500).json({ message: "Failed to update user profile" });
       }
       
       // Don't return password
-      const { password: _, ...userWithoutPassword } = user;
+      const { password, ...userWithoutPassword } = updatedUser[0];
       
-      res.json({ user: userWithoutPassword });
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+  
+  // Auth
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { username, password, phone } = req.body;
+      
+      // Check if using phone authentication
+      if (phone) {
+        // Validate that phone is in +91 format
+        if (!phone.startsWith('+91') || phone.length !== 13) {
+          return res.status(400).json({ message: "Phone number must be in +91 format" });
+        }
+        
+        // Find user by phone number
+        const user = await storage.getUserByPhone(phone);
+        
+        if (!user) {
+          // Create a new user with minimal information if phone doesn't exist
+          const newUser = await storage.createUser({
+            username: `user_${Date.now()}`, // Create a unique username
+            password: `phone_auth_${Date.now()}${Math.random().toString(36).substring(2, 8)}`, // Create a secure random password
+            name: "New User", // Default name
+            phone: phone,
+            email: null,
+            role: "customer",
+            isProfileComplete: false
+          });
+          
+          // Don't return password
+          const { password: _, ...newUserWithoutPassword } = newUser;
+          
+          return res.json({ 
+            user: newUserWithoutPassword, 
+            isNewUser: true,
+            message: "New account created with phone authentication. Please complete your profile."
+          });
+        } else {
+          // User exists with this phone
+          const { password: _, ...userWithoutPassword } = user;
+          
+          return res.json({ 
+            user: userWithoutPassword,
+            isNewUser: false,
+            profileComplete: user.isProfileComplete
+          });
+        }
+      } else {
+        // Regular username/password authentication
+        if (!username || !password) {
+          return res.status(400).json({ message: "Username and password are required" });
+        }
+        
+        const user = await storage.getUserByUsername(username);
+        if (!user || user.password !== password) {
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+        
+        // Don't return password
+        const { password: _, ...userWithoutPassword } = user;
+        
+        res.json({ 
+          user: userWithoutPassword,
+          isNewUser: false,
+          profileComplete: user.isProfileComplete
+        });
+      }
     } catch (error) {
       console.error("Error logging in:", error);
       res.status(500).json({ message: "Failed to log in" });
@@ -824,6 +916,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting customer product price:", error);
       return res.status(500).json({ message: "Error getting customer product price" });
+    }
+  });
+
+  // Google OAuth routes
+  app.get("/api/auth/google", 
+    passport.authenticate("google", { scope: ["profile", "email"] })
+  );
+
+  app.get("/api/auth/google/callback", 
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    (req: Request, res: Response) => {
+      // Successful authentication, redirect to home or return user data
+      res.redirect("/");
+    }
+  );
+  
+  // Get current authenticated user
+  app.get("/api/auth/user", (req: Request, res: Response) => {
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
+      return res.status(401).json({ authenticated: false });
+    }
+    // Don't return password
+    const { password, ...userWithoutPassword } = req.user as any;
+    res.json({ authenticated: true, user: userWithoutPassword });
+  });
+
+  // Logout route
+  app.get("/api/auth/logout", (req: Request, res: Response) => {
+    if (req.logout) {
+      req.logout(() => {
+        res.json({ success: true });
+      });
+    } else {
+      res.json({ success: true });
     }
   });
 
