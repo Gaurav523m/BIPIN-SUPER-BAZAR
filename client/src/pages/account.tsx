@@ -26,6 +26,14 @@ const AccountPage: React.FC = () => {
     queryKey: ["/api/orders", { userId: user?.id || 0 }],
     // Don't attempt to fetch if there's no authenticated user
     enabled: !!user,
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(`/api/orders?userId=${user?.id || 0}`);
+      if (!response.ok) {
+        if (response.status === 404) return [];
+        throw new Error('Failed to fetch orders');
+      }
+      return response.json();
+    }
   });
   
   const handleLogout = async () => {

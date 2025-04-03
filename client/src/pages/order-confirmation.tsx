@@ -40,6 +40,14 @@ const OrderConfirmationPage: React.FC = () => {
   // Fetch order details
   const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${orderId}`],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(`/api/orders/${orderId}`);
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch order details');
+      }
+      return response.json();
+    }
   });
   
   const handleContinueShopping = () => {

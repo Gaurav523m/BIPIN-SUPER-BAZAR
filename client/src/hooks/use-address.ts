@@ -11,6 +11,7 @@ interface Address {
   state?: string;
   zipCode?: string;
   isDefault: boolean;
+  userId: number;
 }
 
 interface AddAddressParams {
@@ -39,7 +40,8 @@ const useAddress = () => {
   } = useUserStore();
 
   // Fetch addresses from the API
-  const { user } = useUserStore();
+  const userState = useUserStore();
+  const user = userState.user;
   
   // Fetch addresses query
   const addressesQuery = useQuery({
@@ -50,17 +52,19 @@ const useAddress = () => {
       const addresses = await response.json();
       return addresses;
     },
-    enabled: !!user?.id,
-    onSuccess: (data) => {
-      // Update local store with fetched addresses
-      if (data && Array.isArray(data)) {
-        // Replace all addresses in the store with the fetched ones
-        data.forEach(address => {
-          addAddressLocal(address);
-        });
-      }
-    }
+    enabled: !!user?.id
   });
+
+  // Handle successful addresses fetch
+  if (addressesQuery.data && Array.isArray(addressesQuery.data)) {
+    // Update local store with fetched addresses if needed
+    addressesQuery.data.forEach(address => {
+      // Add the address to local store if it doesn't exist
+      if (!savedAddresses.some(a => a.id === address.id)) {
+        addAddressLocal(address);
+      }
+    });
+  }
 
   // Public methods
   const addAddress = async (address: any) => {

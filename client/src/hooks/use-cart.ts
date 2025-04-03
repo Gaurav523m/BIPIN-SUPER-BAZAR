@@ -34,7 +34,9 @@ const useCart = () => {
         quantity: data.quantity
       };
       
-      const response = await apiRequest('POST', '/api/cart', payload);
+      const response = await apiRequest('/api/cart', 'POST', {
+        body: JSON.stringify(payload)
+      });
       return response.json();
     },
     onError: (error) => {
@@ -52,8 +54,10 @@ const useCart = () => {
   // Update cart quantity mutation
   const updateQuantityMutation = useMutation({
     mutationFn: async (data: { id: number; quantity: number; }) => {
-      const response = await apiRequest('PATCH', `/api/cart/${data.id}`, {
-        quantity: data.quantity
+      const response = await apiRequest(`/api/cart/${data.id}`, 'PATCH', {
+        body: JSON.stringify({
+          quantity: data.quantity
+        })
       });
       return response.json();
     },
@@ -72,7 +76,7 @@ const useCart = () => {
   // Remove from cart mutation
   const removeFromCartMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/cart/${id}`, undefined);
+      const response = await apiRequest(`/api/cart/${id}`, 'DELETE');
       return response.json();
     },
     onError: (error) => {
@@ -92,23 +96,31 @@ const useCart = () => {
     // Add to local store immediately for UI responsiveness
     addToCartLocal(product, quantity);
     
-    // Then sync with backend (commented out for now as we're using local state)
-    // addToCartMutation.mutate({ productId: product.id, quantity });
+    // Then sync with backend
+    addToCartMutation.mutate({ productId: product.id, quantity });
   };
   
   const updateQuantity = (id: number, quantity: number) => {
     updateQuantityLocal(id, quantity);
-    // updateQuantityMutation.mutate({ id, quantity });
+    updateQuantityMutation.mutate({ id, quantity });
   };
   
   const removeFromCart = (id: number) => {
     removeFromCartLocal(id);
-    // removeFromCartMutation.mutate(id);
+    removeFromCartMutation.mutate(id);
   };
   
   const clearCart = () => {
     clearCartLocal();
-    // In a real app, we would call an API endpoint to clear the cart
+    // Call API endpoint to clear the cart
+    fetch('/api/cart', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).catch(error => {
+      console.error('Failed to clear cart on server:', error);
+    });
   };
   
   return {

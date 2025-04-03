@@ -28,7 +28,9 @@ const CheckoutPage: React.FC = () => {
   
   const createOrderMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/orders", data);
+      const response = await apiRequest("/api/orders", "POST", {
+        body: JSON.stringify(data)
+      });
       return response.json();
     },
     onSuccess: (data) => {

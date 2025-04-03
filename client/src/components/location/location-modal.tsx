@@ -297,7 +297,12 @@ const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, editAddr
                     <div>
                       <h4 className="font-medium capitalize">{addr.type}</h4>
                       <p className="text-sm text-gray-600">{addr.address}</p>
-                      <p className="text-xs text-gray-500">{addr.city}, {addr.state} {addr.zipCode}</p>
+                      {(addr.city || addr.state || addr.zipCode) && (
+                        <p className="text-xs text-gray-500">
+                          {addr.city && addr.city}{addr.city && addr.state ? ", " : ""}
+                          {addr.state && addr.state} {addr.zipCode && addr.zipCode}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
