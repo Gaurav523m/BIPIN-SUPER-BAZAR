@@ -4,18 +4,28 @@ import { setupVite, serveStatic, log } from "./vite";
 import { PgStorage, initializeDatabase } from "./pg-storage";
 import { storage } from "./storage";
 import { db } from "./db";
+import { pool } from "./db";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as LocalStrategy } from "passport-local";
 import { createServer } from "http";
+import pgSession from "connect-pg-simple";
+
+// Create PostgreSQL session store
+const PgStore = pgSession(session);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Setup Express session
+// Setup Express session with PostgreSQL store
 app.use(session({
+  store: new PgStore({
+    pool,
+    tableName: 'session',
+    createTableIfMissing: true
+  }),
   secret: process.env.SESSION_SECRET || 'grocery-app-secret',
   resave: false,
   saveUninitialized: false,
