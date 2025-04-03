@@ -135,42 +135,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user profile
   app.patch("/api/users/:id", async (req: Request, res: Response) => {
     try {
+      console.log("Updating user profile with data:", req.body);
       const userId = parseInt(req.params.id);
       if (isNaN(userId)) {
+        console.log("Invalid user ID:", req.params.id);
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
+      console.log("Looking up user with ID:", userId);
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log("User not found with ID:", userId);
         return res.status(404).json({ message: "User not found" });
       }
+      
+      console.log("Found user:", user);
       
       // Get the fields to update
       const { name, email, phone, isProfileComplete } = req.body;
       
+      console.log("Building update with fields:", { name, email, phone, isProfileComplete });
+      
+      // Prepare the update data
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      if (isProfileComplete !== undefined) updateData.isProfileComplete = isProfileComplete;
+      
+      console.log("Final update data:", updateData);
+      
       // Update in database
       const updatedUser = await db.update(users)
-        .set({ 
-          name: name !== undefined ? name : user.name,
-          email: email !== undefined ? email : user.email,
-          phone: phone !== undefined ? phone : user.phone,
-          isProfileComplete: isProfileComplete !== undefined ? isProfileComplete : user.isProfileComplete
-        })
+        .set(updateData)
         .where(eq(users.id, userId))
         .returning()
         .execute();
       
+      console.log("Database update result:", updatedUser);
+      
       if (!updatedUser || updatedUser.length === 0) {
+        console.log("No user was updated in the database");
         return res.status(500).json({ message: "Failed to update user profile" });
       }
       
       // Don't return password
       const { password, ...userWithoutPassword } = updatedUser[0];
       
+      console.log("Updated user successfully:", userWithoutPassword);
       res.status(200).json(userWithoutPassword);
     } catch (error) {
       console.error("Error updating user profile:", error);
-      res.status(500).json({ message: "Failed to update user profile" });
+      
+      if (error instanceof Error) {
+        console.error("Error details:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to update user profile",
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   

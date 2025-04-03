@@ -57,6 +57,9 @@ function CompleteProfile() {
     setIsSubmitting(true);
     
     try {
+      console.log("Submitting profile data:", data);
+      console.log("Current user:", user);
+      
       // First update the user profile
       const userResponse = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",
@@ -64,40 +67,52 @@ function CompleteProfile() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: data.name,
-          email: data.email,
+          name: data.name || user.name,
+          email: data.email || null, // Handle null email case
           isProfileComplete: true
         }),
         credentials: "include"
       });
       
       if (!userResponse.ok) {
-        throw new Error("Failed to update user profile");
+        const errorData = await userResponse.json();
+        console.error("Profile update API error:", errorData);
+        throw new Error(`Failed to update user profile: ${errorData.error || errorData.message || 'Unknown error'}`);
       }
       
       const updatedUser = await userResponse.json();
+      console.log("Updated user:", updatedUser);
       
       // Then create the address
+      const addressData = {
+        userId: user.id,
+        type: "Home",
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        isDefault: true
+      };
+      
+      console.log("Creating address with data:", addressData);
+      
       const addressResponse = await fetch("/api/addresses", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          userId: user.id,
-          type: "Home",
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          zipCode: data.zipCode,
-          isDefault: true
-        }),
+        body: JSON.stringify(addressData),
         credentials: "include"
       });
       
       if (!addressResponse.ok) {
-        throw new Error("Failed to create address");
+        const errorData = await addressResponse.json();
+        console.error("Address creation API error:", errorData);
+        throw new Error(`Failed to create address: ${errorData.error || errorData.message || 'Unknown error'}`);
       }
+      
+      const newAddress = await addressResponse.json();
+      console.log("Created address:", newAddress);
       
       // Update the user in state
       setUser(updatedUser);
@@ -115,7 +130,9 @@ function CompleteProfile() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to complete your profile. Please try again.",
+        description: error instanceof Error 
+          ? error.message 
+          : "Failed to complete your profile. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
