@@ -165,22 +165,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Final update data:", updateData);
       
-      // Update in database
-      const updatedUser = await db.update(users)
-        .set(updateData)
-        .where(eq(users.id, userId))
-        .returning()
-        .execute();
+      // Update in database using storage interface
+      const updatedUser = await storage.updateUser(userId, updateData);
       
       console.log("Database update result:", updatedUser);
       
-      if (!updatedUser || updatedUser.length === 0) {
+      if (!updatedUser) {
         console.log("No user was updated in the database");
         return res.status(500).json({ message: "Failed to update user profile" });
       }
       
       // Don't return password
-      const { password, ...userWithoutPassword } = updatedUser[0];
+      const { password, ...userWithoutPassword } = updatedUser;
       
       console.log("Updated user successfully:", userWithoutPassword);
       res.status(200).json(userWithoutPassword);

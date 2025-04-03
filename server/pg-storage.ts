@@ -47,6 +47,14 @@ export class PgStorage implements IStorage {
     return result[0];
   }
 
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const result = await db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
   // Addresses
   async getAddresses(userId: number): Promise<Address[]> {
     return await db.select().from(addresses).where(eq(addresses.userId, userId));
