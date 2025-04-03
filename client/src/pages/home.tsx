@@ -267,7 +267,7 @@ const Home: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-sm font-medium">{product.name}</h4>
-                        <p className="text-xs text-primary font-bold">${product.discountPrice || product.price}</p>
+                        <p className="text-xs text-primary font-bold">₹{(product.discountPrice || product.price).toFixed(2)}</p>
                       </div>
                     </div>
                   ))
@@ -306,7 +306,7 @@ const Home: React.FC = () => {
                       </div>
                       <div>
                         <h4 className="text-sm font-medium">{product.name}</h4>
-                        <p className="text-xs text-primary font-bold">${product.discountPrice || product.price}</p>
+                        <p className="text-xs text-primary font-bold">₹{(product.discountPrice || product.price).toFixed(2)}</p>
                       </div>
                     </div>
                   ))

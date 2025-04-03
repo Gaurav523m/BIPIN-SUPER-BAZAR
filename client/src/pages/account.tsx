@@ -8,12 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import LocationModal from "@/components/location/location-modal";
 import useAddress from "@/hooks/use-address";
+import { EditProfileForm } from "@/components/profile/edit-profile-form";
 
 // Get the user from auth context
 
 const AccountPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const { savedAddresses } = useAddress();
   const { toast } = useToast();
   const { user, logout } = useAuth();
@@ -86,7 +88,10 @@ const AccountPage: React.FC = () => {
                     <p className="text-lg">{user?.phone || 'Not set'}</p>
                   </div>
                   <div className="pt-4">
-                    <Button variant="outline">
+                    <Button 
+                      variant="outline"
+                      onClick={() => setIsEditProfileOpen(true)}
+                    >
                       <i className='bx bx-edit mr-2'></i> Edit Profile
                     </Button>
                   </div>
@@ -139,7 +144,7 @@ const AccountPage: React.FC = () => {
                       </div>
                       <p className="text-gray-600 text-sm mb-2">
                         {new Date(order.createdAt).toLocaleDateString()} • 
-                        {order.items?.length || 0} items • ${order.totalAmount.toFixed(2)}
+                        {order.items?.length || 0} items • ₹{order.totalAmount.toFixed(2)}
                       </p>
                       <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-500">
@@ -231,6 +236,14 @@ const AccountPage: React.FC = () => {
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
       />
+      
+      {user && (
+        <EditProfileForm
+          isOpen={isEditProfileOpen}
+          onClose={() => setIsEditProfileOpen(false)}
+          user={user}
+        />
+      )}
     </>
   );
 };

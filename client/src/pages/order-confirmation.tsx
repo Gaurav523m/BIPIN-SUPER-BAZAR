@@ -6,12 +6,39 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Define the order type
+interface OrderItem {
+  id: number;
+  orderId: number;
+  productId: number;
+  quantity: number;
+  price: number;
+  product: {
+    id: number;
+    name: string;
+    price: number;
+    description?: string;
+    image?: string;
+  };
+}
+
+interface Order {
+  id: number;
+  userId: number;
+  status: string;
+  totalAmount: number;
+  estimatedDeliveryTime: number;
+  paymentMethod: string;
+  createdAt: string;
+  items: OrderItem[];
+}
+
 const OrderConfirmationPage: React.FC = () => {
   const { orderId } = useParams();
   const [_, setLocation] = useLocation();
   
   // Fetch order details
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading } = useQuery<Order>({
     queryKey: [`/api/orders/${orderId}`],
   });
   
@@ -67,6 +94,9 @@ const OrderConfirmationPage: React.FC = () => {
     );
   }
   
+  // Cast order to the Order type to help TypeScript
+  const typedOrder = order as Order;
+  
   return (
     <div className="max-w-2xl mx-auto py-6">
       <Card>
@@ -77,15 +107,15 @@ const OrderConfirmationPage: React.FC = () => {
           
           <h1 className="text-2xl font-bold mb-2">Order Confirmed!</h1>
           <p className="text-gray-600 mb-6">
-            Your order #{order.id} has been placed successfully and will be delivered in approximately {order.estimatedDeliveryTime} minutes.
+            Your order #{typedOrder.id} has been placed successfully and will be delivered in approximately {typedOrder.estimatedDeliveryTime} minutes.
           </p>
           
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <div className="text-left mb-4">
               <h2 className="text-sm font-medium text-gray-500">DELIVERY DETAILS</h2>
-              <p className="font-medium">Estimated Delivery Time: {order.estimatedDeliveryTime} minutes</p>
+              <p className="font-medium">Estimated Delivery Time: {typedOrder.estimatedDeliveryTime} minutes</p>
               <p>
-                Status: <span className="capitalize">{order.status}</span>
+                Status: <span className="capitalize">{typedOrder.status}</span>
               </p>
             </div>
             
@@ -94,17 +124,17 @@ const OrderConfirmationPage: React.FC = () => {
             <div className="text-left mb-4">
               <h2 className="text-sm font-medium text-gray-500">ORDER SUMMARY</h2>
               <div className="space-y-2 my-2">
-                {order.items && order.items.map((item: any) => (
+                {typedOrder.items && typedOrder.items.map((item) => (
                   <div key={item.id} className="flex justify-between">
                     <span>{item.quantity} x {item.product.name}</span>
-                    <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between font-bold">
                 <span>Total Amount</span>
-                <span>${order.totalAmount.toFixed(2)}</span>
+                <span>₹{typedOrder.totalAmount.toFixed(2)}</span>
               </div>
             </div>
             
@@ -112,8 +142,8 @@ const OrderConfirmationPage: React.FC = () => {
             
             <div className="text-left">
               <h2 className="text-sm font-medium text-gray-500">PAYMENT INFORMATION</h2>
-              <p>Method: {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 
-                        order.paymentMethod === 'card' ? 'Credit/Debit Card' : 
+              <p>Method: {typedOrder.paymentMethod === 'cod' ? 'Cash on Delivery' : 
+                        typedOrder.paymentMethod === 'card' ? 'Credit/Debit Card' : 
                         'UPI Payment'}</p>
             </div>
           </div>

@@ -220,10 +220,10 @@ const CheckoutPage: React.FC = () => {
                       
                       <div className="text-right">
                         <p className="font-bold">
-                          ${((item.product.discountPrice || item.product.price) * item.quantity).toFixed(2)}
+                          ₹{((item.product.discountPrice || item.product.price) * item.quantity).toFixed(2)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          ${(item.product.discountPrice || item.product.price).toFixed(2)} each
+                          ₹{(item.product.discountPrice || item.product.price).toFixed(2)} each
                         </p>
                       </div>
                     </div>
@@ -254,7 +254,7 @@ const CheckoutPage: React.FC = () => {
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Delivery Fee</span>
@@ -262,7 +262,7 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between pt-3 border-t">
                   <span className="font-bold">Total</span>
-                  <span className="font-bold">${total.toFixed(2)}</span>
+                  <span className="font-bold">₹{total.toFixed(2)}</span>
                 </div>
               </div>
               
