@@ -65,14 +65,16 @@ const useAddress = () => {
   // Public methods
   const addAddress = async (address: any) => {
     try {
-      const response = await apiRequest('POST', '/api/addresses', {
-        userId: address.userId,
-        type: address.type,
-        address: address.address,
-        city: address.city,
-        state: address.state,
-        zipCode: address.zipCode,
-        isDefault: address.isDefault || false
+      const response = await apiRequest('/api/addresses', 'POST', {
+        body: JSON.stringify({
+          userId: address.userId,
+          type: address.type,
+          address: address.address,
+          city: address.city,
+          state: address.state,
+          zipCode: address.zipCode,
+          isDefault: address.isDefault || false
+        })
       });
 
       const newAddress = await response.json();
@@ -100,7 +102,10 @@ const useAddress = () => {
 
   const updateAddress = async (id: number, data: any) => {
     try {
-      const response = await apiRequest('PATCH', `/api/addresses/${id}`, data);
+      const response = await apiRequest(`/api/addresses/${id}`, 'PATCH', {
+        body: JSON.stringify(data)
+      });
+      
       const updatedAddress = await response.json();
       
       // Update local store
@@ -128,7 +133,7 @@ const useAddress = () => {
 
   const removeAddress = async (id: number) => {
     try {
-      const response = await apiRequest('DELETE', `/api/addresses/${id}`);
+      const response = await apiRequest(`/api/addresses/${id}`, 'DELETE');
       const result = await response.json();
       
       // Update local store
