@@ -204,7 +204,7 @@ const CheckoutPage: React.FC = () => {
                     <div key={item.id} className="flex items-center gap-3 pb-3 border-b">
                       <div className="w-16 h-16 relative flex-shrink-0">
                         <img 
-                          src={item.product.image} 
+                          src={item.product.image as string}
                           alt={item.product.name}
                           className="w-full h-full object-cover rounded"
                         />

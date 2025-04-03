@@ -55,10 +55,12 @@ const RegisterForm: React.FC = () => {
       const { confirmPassword, ...userData } = data;
       // Generate a username based on phone number since we no longer collect it
       const username = `user_${Date.now()}`;
-      const response = await apiRequest('POST', '/api/users', {
-        ...userData,
-        username,
-        role: "customer"
+      const response = await apiRequest('/api/users', 'POST', {
+        body: JSON.stringify({
+          ...userData,
+          username,
+          role: "customer"
+        })
       });
       if (!response.ok) {
         const errorData = await response.json();

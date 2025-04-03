@@ -44,7 +44,9 @@ const LoginForm: React.FC = () => {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (data: PhoneLoginValues) => {
-      const response = await apiRequest('POST', '/api/auth/login', data);
+      const response = await apiRequest('/api/auth/login', 'POST', {
+        body: JSON.stringify(data)
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Login failed');
