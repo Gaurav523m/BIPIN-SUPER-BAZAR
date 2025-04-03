@@ -30,20 +30,48 @@ This application is configured for easy deployment to Render, a cloud platform w
 ### Steps to deploy:
 
 1. Create a Render account at https://render.com
-2. Fork this repository to your GitHub account
+2. Push this repository to GitHub:
+   - Create a GitHub repository
+   - Push the code to GitHub using the instructions provided on GitHub
 3. In your Render dashboard, click "New" and select "Blueprint"
 4. Connect your GitHub account and select this repository
 5. Render will automatically set up your web service and PostgreSQL database based on the render.yaml configuration
 
 ### Manual deployment:
 
-1. Create a new PostgreSQL database on Render
-2. Create a new Web Service on Render
-3. Link the repository
-4. Set the following environment variables:
-   - DATABASE_URL: Your Render PostgreSQL connection string
-5. Set the build command to: `npm install`
-6. Set the start command to: `./start.sh`
+1. Create a new PostgreSQL database on Render:
+   - Go to your Render dashboard
+   - Click "New" and select "PostgreSQL"
+   - Choose the free plan
+   - Set a name (e.g., "grocery-db")
+   - Click "Create Database"
+   - Wait for the database to be provisioned
+   - Copy the "Internal Database URL" (NOT the external one)
+
+2. Create a new Web Service on Render:
+   - Go to your Render dashboard
+   - Click "New" and select "Web Service"
+   - Connect your GitHub repository
+   - Choose a name (e.g., "grocery-app")
+   - Keep the environment as "Node"
+   - Set the build command to: `npm install`
+   - Set the start command to: `./start.sh`
+   - Click "Advanced" and add the following environment variable:
+     - Key: `DATABASE_URL`
+     - Value: (paste the Internal Database URL from step 1)
+   - Click "Create Web Service"
+
+### Troubleshooting deployment issues:
+
+If your deployment fails, check the following:
+
+1. **Database connection**: Make sure the DATABASE_URL environment variable is using the Internal Database URL provided by Render (not the External Database URL).
+
+2. **Build process**: Check the build logs in Render for any errors. If there are issues with npm packages, you may need to update the Node.js version in your service settings.
+
+3. **Permissions**: Ensure the start.sh script is executable. You can do this by running `chmod +x start.sh` before pushing to GitHub.
+
+4. **Database initialization**: If the database initialization fails, you can manually run the SQL scripts via the Render PostgreSQL shell. Go to your database in the Render dashboard and click "Shell".
 
 ## Local Development
 

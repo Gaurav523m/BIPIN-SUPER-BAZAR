@@ -76,14 +76,17 @@ Object.assign(storage, pgStorage);
     serveStatic(app);
   }
 
-  // In Replit, we need to use port 5000
-  // For other deployment environments, use the PORT environment variable
+  // Use PORT from environment variable or default to 5000
   const port = process.env.PORT || 5000;
+  
+  // Log the port being used
+  console.log(`Starting server on port ${port}...`);
+  
   server.listen({
     port: Number(port),
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`Server running on port ${port}`);
+    console.log(`Server running successfully on port ${port}`);
   });
 })();

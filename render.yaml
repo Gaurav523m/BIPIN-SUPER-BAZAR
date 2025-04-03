@@ -14,12 +14,8 @@ services:
           property: connectionString
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
 
 databases:
   - name: grocery-db
     plan: free
-    databaseName: grocerydb
-    user: groceryapp
     ipAllowList: []
