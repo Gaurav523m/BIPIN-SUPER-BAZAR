@@ -18,10 +18,16 @@ Before deploying, make sure you have the following database environment variable
 - `PGDATABASE`
 - `PGHOST`
 - `PGPASSWORD`
-- `PGPORT`
+- `PGPORT` (Make sure this is a valid numeric port number, usually 5432)
 - `PGUSER`
 
 You can find these in Replit by going to "Secrets" in the left sidebar of your project.
+
+### Important Notes About Database Connection
+
+- The deployment script will automatically validate the PGPORT variable to ensure it's a valid numeric value.
+- The script will first try to connect using the DATABASE_URL environment variable.
+- If that fails, it will fall back to using the individual connection parameters (PGHOST, PGUSER, etc.).
 
 ### 2. Deploy to Render
 
@@ -64,12 +70,21 @@ There are two ways to deploy to Render:
 
 ### Troubleshooting
 
-If you encounter issues with the deployment:
+#### Common Deployment Issues
 
-1. Check the Render logs for any errors
-2. Ensure all environment variables are correctly set
-3. Verify that your database is accessible from Render
-4. Check if the session table was created properly
+1. **Invalid PGPORT value**:
+   - Error: `psql: error: invalid integer value "640a0d7e834a039fc1cedd5d9aa3a7bc" for connection option "port"`
+   - Solution: Ensure your PGPORT is set to a numeric value (typically 5432). The updated start.sh script now automatically handles this.
+
+2. **Vite Not Found**:
+   - Error: `sh: 1: vite: not found` followed by `ERROR: Could not find server file in dist directory!`
+   - Solution: The updated start.sh script now directly calls npx for both vite and esbuild build steps.
+
+3. **Other Issues**:
+   - Check Render logs for specific errors
+   - Ensure all environment variables are correctly set
+   - Verify that your database is accessible from Render
+   - Check if the session table was created properly
 
 ### Important Notes
 
